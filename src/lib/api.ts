@@ -1,3 +1,4 @@
+
 import type {
   Device,
   Scan,
@@ -19,29 +20,53 @@ import { summarizeScanFindings } from '@/ai/flows/summarize-scan-findings';
 
 const MOCK_DELAY = 500;
 
-const mockDevices: Device[] = Array.from({ length: 55 }, (_, i) => ({
-  id: `device-${i + 1}`,
-  name: `Workstation ${100 + i}`,
-  brand: ['Dell', 'HP', 'Lenovo', 'Apple'][i % 4],
-  model: ['OptiPlex 7000', 'EliteDesk 800', 'ThinkCentre M90', 'iMac 27"'][i % 4],
-  version: `1.${i % 3}.0`,
-  location: ['Office A', 'Office B', 'Remote', 'Lab'][i % 4],
-  ipAddress: `192.168.1.${10 + i}`,
-  macAddress: `00:1A:2B:3C:4D:${(10 + i).toString(16).padStart(2, '0').toUpperCase()}`,
-  os: ['Windows 11', 'macOS Sonoma', 'Ubuntu 22.04', 'Windows 10'][i % 4],
-  osVersion: ['23H2', '14.1', 'LTS', '22H2'][i % 4],
-  isActive: i % 5 !== 0, // every 5th device is inactive
-  lastSeen: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toISOString(),
-  createdAt: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 30).toISOString(),
-  updatedAt: new Date().toISOString(),
-  tags: [['critical', 'server'], ['finance-dept'], ['dev-env']][i%3],
-}));
+const mockFirewallBrands = ['Cisco', 'Palo Alto Networks', 'Fortinet', 'Juniper Networks', 'Check Point'];
+const mockFirewallModels = {
+  'Cisco': ['ASA 5500-X', 'Firepower 1000', 'Meraki MX'],
+  'Palo Alto Networks': ['PA-220', 'PA-800 Series', 'PA-3200 Series'],
+  'Fortinet': ['FortiGate 60F', 'FortiGate 100F', 'FortiGate 1800F'],
+  'Juniper Networks': ['SRX300 Series', 'SRX1500', 'SRX4600'],
+  'Check Point': ['Quantum Spark', 'Quantum Security Gateway', 'Maestro Hyperscale Orchestrator'],
+};
+const mockFirewallOS = {
+  'Cisco': 'Cisco ASA Software',
+  'Palo Alto Networks': 'PAN-OS',
+  'Fortinet': 'FortiOS',
+  'Juniper Networks': 'Junos OS',
+  'Check Point': 'Gaia OS',
+};
+
+const mockDevices: Device[] = Array.from({ length: 55 }, (_, i) => {
+  const brand = mockFirewallBrands[i % mockFirewallBrands.length];
+  const model = mockFirewallModels[brand][i % mockFirewallModels[brand].length];
+  const os = mockFirewallOS[brand];
+  const osVersion = `${9 + (i % 3)}.${i % 5}.${i % 9}`;
+
+  return {
+    id: `device-fw-${i + 1}`,
+    name: `${brand.split(' ')[0]} Firewall ${model.split(' ')[0]}-${1000 + i}`,
+    brand: brand,
+    model: model,
+    version: `${1 + (i%4)}.${i % 10}.${i%5}`, // Firmware version of the device itself
+    location: ['Data Center A', 'Branch Office X', 'DMZ Zone', 'Cloud VPC Segment'][i % 4],
+    ipAddress: `10.0.${i % 255}.${10 + (i % 200)}`,
+    macAddress: `00:A1:B2:C3:D4:${(10 + i).toString(16).padStart(2, '0').toUpperCase()}`,
+    os: os,
+    osVersion: osVersion, // OS version running on the firewall
+    isActive: i % 6 !== 0, // every 6th device is inactive
+    lastSeen: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toISOString(),
+    createdAt: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 30).toISOString(),
+    updatedAt: new Date().toISOString(),
+    tags: [['core-network', 'high-availability'], ['perimeter-security'], ['internal-segmentation']][i%3],
+  };
+});
 
 const mockVulnerabilities: Vulnerability[] = [
-  { id: 'vuln-1', cveId: 'CVE-2023-12345', name: 'Remote Code Execution', description: 'A critical RCE vulnerability.', severity: 'critical', cvssScore: 9.8, affectedSoftware: 'Apache Struts 2.0.0', references: ['https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-12345'] },
-  { id: 'vuln-2', cveId: 'CVE-2023-67890', name: 'SQL Injection', description: 'A high severity SQL injection.', severity: 'high', cvssScore: 8.5, affectedSoftware: 'Legacy DB Connector 1.2', references: ['https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-67890'] },
-  { id: 'vuln-3', name: 'Outdated TLS Version', description: 'Server supports TLS 1.0.', severity: 'medium', cvssScore: 5.4 },
-  { id: 'vuln-4', name: 'Weak Password Policy', description: 'Password policy allows weak passwords.', severity: 'low' },
+  { id: 'vuln-fw-1', cveId: 'CVE-2023-20202', name: 'Cisco IOS XE Web UI Auth Bypass', description: 'A critical authentication bypass in Cisco IOS XE Web UI.', severity: 'critical', cvssScore: 9.8, affectedSoftware: 'Cisco IOS XE', references: ['https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-iosxe-auth-bypass-kLgg5N3'] },
+  { id: 'vuln-fw-2', cveId: 'CVE-2022-30524', name: 'PAN-OS GlobalProtect Heap Overflow', description: 'A high severity heap overflow in Palo Alto Networks GlobalProtect.', severity: 'high', cvssScore: 8.8, affectedSoftware: 'PAN-OS', references: ['https://security.paloaltonetworks.com/CVE-2022-30524'] },
+  { id: 'vuln-fw-3', name: 'FortiOS Weak SSL/TLS Configuration', description: 'FortiGate device supports weak SSL/TLS ciphers.', severity: 'medium', cvssScore: 5.3, affectedSoftware: 'FortiOS' },
+  { id: 'vuln-fw-4', name: 'Junos OS Default Credentials Active', description: 'Default credentials still active on Juniper SRX device.', severity: 'high', cvssScore: 7.5, affectedSoftware: 'Junos OS'},
+  { id: 'vuln-fw-5', name: 'Outdated Firmware - General', description: 'Device firmware is outdated and misses security patches.', severity: 'low', cvssScore: 3.5 },
 ];
 
 const mockScanResults = (scanId: string, deviceId: string): ScanResult[] => {
@@ -49,15 +74,15 @@ const mockScanResults = (scanId: string, deviceId: string): ScanResult[] => {
     return Array.from({ length: numResults }, (_, i) => {
         const vuln = mockVulnerabilities[i % mockVulnerabilities.length];
         return {
-            id: `scanresult-${scanId}-${i}`,
+            id: `scanresult-fw-${scanId}-${i}`,
             scanId,
             vulnerabilityId: vuln.id,
             finding: vuln.name,
             details: vuln.description,
             severity: vuln.severity,
-            status: (['open', 'closed'] as const)[i%2],
+            status: (['open', 'closed', 'ignored'] as const)[i%3],
             aiConfidenceScore: Math.random() > 0.5 ? Math.random() : undefined,
-            aiSuggestedRemediation: Math.random() > 0.5 ? "Update software to latest version." : undefined,
+            aiSuggestedRemediation: Math.random() > 0.5 ? "Update firmware to the latest vendor-supplied version. Refer to vendor advisory." : undefined,
             createdAt: new Date().toISOString(),
         };
     });
@@ -69,16 +94,16 @@ const mockScans: Scan[] = Array.from({ length: 120 }, (_, i) => {
   const scanType = (['full', 'local', 'web', 'ai'] as ScanType[])[i % 4];
   const statusOptions: ScanStatus[] = ['completed', 'in_progress', 'failed', 'pending'];
   const status = statusOptions[i % statusOptions.length];
-  const results = status === 'completed' ? mockScanResults(`scan-${i + 1}`, device.id) : [];
+  const results = status === 'completed' ? mockScanResults(`scan-fw-${i + 1}`, device.id) : [];
   return {
-    id: `scan-${i + 1}`,
+    id: `scan-fw-${i + 1}`,
     deviceId: device.id,
-    deviceName: device.name,
+    deviceName: device.name, // Store the device name at the time of scan
     scanType,
     status,
     startedAt: status !== 'pending' ? new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24).toISOString() : undefined,
     completedAt: status === 'completed' || status === 'failed' ? new Date().toISOString() : undefined,
-    summary: status === 'completed' ? `Scan found ${results.length} potential issues.` : undefined,
+    summary: status === 'completed' ? `Scan found ${results.filter(r => r.status === 'open').length} open issues.` : undefined,
     vulnerabilitiesFound: results.filter(r => r.status === 'open').length,
     results,
     createdAt: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 10).toISOString(),
@@ -124,7 +149,7 @@ export const fetchDeviceById = async (id: string): Promise<Device | undefined> =
   if (device) {
     // Add some mock scans related to this device
     // @ts-ignore
-    device.scans = mockScans.filter(s => s.deviceId === id).slice(0, 5);
+    device.scans = mockScans.filter(s => s.deviceId === id).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
   }
   return device;
 };
@@ -136,7 +161,7 @@ export const triggerScan = async (deviceId: string, scanType: ScanType, options?
   if (!device) throw new Error('Device not found');
 
   const newScan: Scan = {
-    id: `scan-${mockScans.length + 1}`,
+    id: `scan-fw-${mockScans.length + 1}`,
     deviceId,
     deviceName: device.name,
     scanType,
@@ -170,15 +195,14 @@ export const triggerScan = async (deviceId: string, scanType: ScanType, options?
           newScan.summary = "AI processing failed.";
         }
       } else {
-         newScan.summary = `Scan completed. Found ${newScan.vulnerabilitiesFound} vulnerabilities.`;
+         newScan.summary = `Scan completed. Found ${newScan.vulnerabilitiesFound} open vulnerabilities.`;
       }
       console.log(`API: Scan ${newScan.id} completed.`);
       // Note: In a real app, you'd update this scan's state in your backend/DB.
-      // Here we just log, the `newScan` object itself is not being 'updated' in the mockScans array after this async block.
     }, MOCK_DELAY * 3);
   }, MOCK_DELAY * 2);
 
-  mockScans.unshift(newScan); // Add to the beginning for visibility in lists
+  mockScans.unshift(newScan); 
   return newScan;
 };
 
@@ -186,8 +210,13 @@ export const triggerBulkScan = async (deviceIds: string[]): Promise<{ jobId: str
   console.log('API: Triggering bulk scan for devices:', deviceIds);
   await new Promise(resolve => setTimeout(resolve, MOCK_DELAY + 1500));
   // Simulate starting scans for each device
-  deviceIds.forEach(id => triggerScan(id, 'full')); 
-  return { jobId: `bulk-job-${Date.now()}`, message: `${deviceIds.length} scans initiated.` };
+  deviceIds.forEach(id => {
+    const device = mockDevices.find(d => d.id === id);
+    if (device) {
+      triggerScan(id, 'full'); // Trigger full scan for bulk operations
+    }
+  });
+  return { jobId: `bulk-job-fw-${Date.now()}`, message: `${deviceIds.length} firewall scans initiated.` };
 };
 
 export const fetchScanHistory = async (filters: ScanHistoryFilters = {}): Promise<PaginatedResponse<Scan>> => {
@@ -199,7 +228,7 @@ export const fetchScanHistory = async (filters: ScanHistoryFilters = {}): Promis
     if (filters.status && filters.status !== 'all' && scan.status !== filters.status) return false;
     if (filters.scanType && filters.scanType !== 'all' && scan.scanType !== filters.scanType) return false;
     return true;
-  });
+  }).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const page = filters.page || 1;
   const limit = filters.limit || 10;
@@ -222,72 +251,98 @@ export const fetchOrganizationSummary = async (): Promise<OrganizationSummary> =
   console.log('API: Fetching organization summary');
   await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
   const criticalVulnsByDevice: { [deviceId: string]: boolean } = {};
+  let totalOpenVulnerabilities = 0;
+  
   mockScans.forEach(scan => {
     if (scan.status === 'completed' && scan.results) {
+      let deviceHasOpenCritical = false;
       scan.results.forEach(res => {
-        if (res.severity === 'critical' && res.status === 'open') {
-          criticalVulnsByDevice[scan.deviceId] = true;
+        if (res.status === 'open') {
+          totalOpenVulnerabilities++;
+          if (res.severity === 'critical') {
+            deviceHasOpenCritical = true;
+          }
         }
       });
+      if (deviceHasOpenCritical) {
+        criticalVulnsByDevice[scan.deviceId] = true;
+      }
     }
   });
+
+  const criticalCount = mockScans.reduce((sum, scan) => sum + (scan.results?.filter(r => r.severity === 'critical' && r.status === 'open').length || 0), 0);
+  const highCount = mockScans.reduce((sum, scan) => sum + (scan.results?.filter(r => r.severity === 'high' && r.status === 'open').length || 0), 0);
+  const mediumCount = mockScans.reduce((sum, scan) => sum + (scan.results?.filter(r => r.severity === 'medium' && r.status === 'open').length || 0), 0);
+  const lowCount = mockScans.reduce((sum, scan) => sum + (scan.results?.filter(r => r.severity === 'low' && r.status === 'open').length || 0), 0);
+  const informationalCount = mockScans.reduce((sum, scan) => sum + (scan.results?.filter(r => r.severity === 'informational' && r.status === 'open').length || 0), 0);
 
   return {
     totalDevices: mockDevices.length,
     activeDevices: mockDevices.filter(d => d.isActive).length,
     devicesWithCriticalVulnerabilities: Object.keys(criticalVulnsByDevice).length,
-    totalVulnerabilities: mockScans.reduce((acc, s) => acc + (s.vulnerabilitiesFound || 0),0),
-    averageTimeToRemediate: '5 days', // Mocked
+    totalVulnerabilities: totalOpenVulnerabilities,
+    averageTimeToRemediate: '7 days', // Mocked
     recentScansCount: mockScans.filter(s => new Date(s.createdAt).getTime() > Date.now() - 1000 * 60 * 60 * 24 * 7).length,
     scanActivity: Array.from({ length: 7 }, (_, i) => ({
-      date: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA'), // YYYY-MM-DD format
-      count: Math.floor(Math.random() * 20)
+      date: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA'), 
+      count: mockScans.filter(s => new Date(s.createdAt).toDateString() === new Date(Date.now() - (6-i) * 24*60*60*1000).toDateString()).length
     })),
     vulnerabilitySeverityDistribution: [
-      { severity: 'critical', count: Math.floor(Math.random() * 20) + 5 },
-      { severity: 'high', count: Math.floor(Math.random() * 50) + 10 },
-      { severity: 'medium', count: Math.floor(Math.random() * 100) + 20 },
-      { severity: 'low', count: Math.floor(Math.random() * 80) + 15 },
-      { severity: 'informational', count: Math.floor(Math.random() * 30) + 5 },
-    ],
+      { severity: 'critical', count: criticalCount },
+      { severity: 'high', count: highCount },
+      { severity: 'medium', count: mediumCount },
+      { severity: 'low', count: lowCount },
+      { severity: 'informational', count: informationalCount },
+    ].filter(item => item.count > 0), // Only include severities with counts
   };
 };
 
 
-// GenAI Flow Wrappers (mocked or calling actual flows)
+// GenAI Flow Wrappers
 export const callSuggestRemediationSteps = async (vulnerabilityDescription: string, deviceInformation: string): Promise<AISuggestion> => {
-  console.log(`API: Calling AI for remediation steps: ${vulnerabilityDescription}`);
-  // return suggestRemediationSteps({ vulnerabilityDescription, deviceInformation }); // Actual call
-  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
-  return {
-    remediationSteps: `1. Isolate the device: ${deviceInformation}.\n2. Apply patch XYZ if available.\n3. Monitor for further suspicious activity.`,
-    confidenceScore: Math.random() * 0.3 + 0.7, // High confidence for mock
-  };
+  console.log(`API: Calling AI for remediation steps for '${vulnerabilityDescription}' on '${deviceInformation}'`);
+  try {
+    return await suggestRemediationSteps({ vulnerabilityDescription, deviceInformation });
+  } catch (error) {
+    console.error("Error in callSuggestRemediationSteps:", error);
+    // Fallback mock for safety if Genkit call fails
+    return {
+      remediationSteps: `AI suggestion failed. Standard advice: 1. Identify affected firmware for ${deviceInformation}.\n2. Check vendor advisories for patch for '${vulnerabilityDescription}'.\n3. Apply patch if available and test.\n4. Monitor device logs.`,
+      confidenceScore: 0.1,
+    };
+  }
 };
 
 export const callEnhanceScanWithAi = async (scanReport: string): Promise<AIEnhancement> => {
   console.log(`API: Calling AI to enhance scan report.`);
-   // return enhanceScanWithAi({ scanReport }); // Actual call
-  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
-  return {
-    executiveSummary: "The AI analysis indicates several critical vulnerabilities requiring immediate attention. Key areas include outdated software and misconfigured services.",
-    prioritizedRecommendations: "1. Patch CVE-2023-XXXX on all affected servers.\n2. Update all instances of Library Y to version 3.5 or higher.\n3. Review and harden firewall rules for external-facing services.",
-    confidenceScore: Math.random() * 0.3 + 0.65,
-  };
+  try {
+    return await enhanceScanWithAi({ scanReport });
+  } catch (error) {
+    console.error("Error in callEnhanceScanWithAi:", error);
+    return {
+      executiveSummary: "AI enhancement failed. The scan report indicates potential vulnerabilities. Manual review is recommended.",
+      prioritizedRecommendations: "1. Manually review all 'critical' and 'high' severity findings.\n2. Cross-reference findings with vendor documentation.",
+      confidenceScore: 0.1,
+    };
+  }
 };
 
 export const callSummarizeScanFindings = async (scanData: string): Promise<AISummary> => {
   console.log(`API: Calling AI to summarize scan findings.`);
-  // return summarizeScanFindings({ scanData }); // Actual call
-  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
-  return {
-    summary: "The scan identified multiple vulnerabilities, primarily of medium severity. Common issues include weak configurations and missing security updates.",
-    keyInsights: "- Most vulnerabilities are related to unpatched software (60%).\n- 20% of findings are due to weak authentication mechanisms.\n- A small number of critical vulnerabilities (5%) were found on internet-facing systems.",
-    confidenceScore: Math.random() * 0.2 + 0.75,
-  };
+   try {
+    return await summarizeScanFindings({ scanData });
+  } catch (error) {
+    console.error("Error in callSummarizeScanFindings:", error);
+    return {
+      summary: "AI summary failed. The scan likely identified several findings. Please review the detailed results.",
+      keyInsights: "- Manual review of scan results is necessary.",
+      confidenceScore: 0.1,
+    };
+  }
 };
 
-export const getScanTypes = () => ['full', 'local', 'web', 'ai'] as ScanType[];
-export const getScanStatuses = () => ['all', 'pending', 'in_progress', 'completed', 'failed', 'cancelled'] as (ScanStatus | 'all')[];
-export const getDeviceBrands = () => ['all', ...new Set(mockDevices.map(d => d.brand))];
-export const getDeviceLocations = () => ['all', ...new Set(mockDevices.map(d => d.location))];
+export const getScanTypes = (): ScanType[] => ['full', 'local', 'web', 'ai'];
+export const getScanStatuses = (): (ScanStatus | 'all')[] => ['all', 'pending', 'in_progress', 'completed', 'failed', 'cancelled'];
+export const getDeviceBrands = (): string[] => ['all', ...new Set(mockDevices.map(d => d.brand))];
+export const getDeviceLocations = (): string[] => ['all', ...new Set(mockDevices.map(d => d.location))];
+
