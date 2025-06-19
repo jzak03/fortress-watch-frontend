@@ -2,14 +2,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams, notFound } from 'next/navigation';
+import { useParams, notFound, useSearchParams } from 'next/navigation';
 import { fetchDeviceById, triggerScan, callSuggestRemediationSteps, callEnhanceScanWithAi, callSummarizeScanFindings } from '@/lib/api';
 import type { Device, Scan, ScanType, Vulnerability, ScanResult, AISuggestion, AIEnhancement, AISummary } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Laptop, Smartphone, Server, Tablet, ScanLine, AlertTriangle, CheckCircle2, ShieldCheck, Lightbulb, Brain, Globe, Activity, CalendarDays, Tag, ListChecks, BarChartHorizontalBig, Info } from 'lucide-react';
+import { Laptop, Smartphone, Server, Tablet, ScanLine, AlertTriangle, CheckCircle2, ShieldCheck, Lightbulb, Brain, Globe, Activity, CalendarDays, Tag, ListChecks, BarChartHorizontalBig } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -49,6 +49,7 @@ const severityBadgeVariant = (severity: Vulnerability['severity'] | ScanResult['
 
 export default function DeviceDetailsPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = params.id as string;
   const { toast } = useToast();
 
@@ -74,8 +75,34 @@ export default function DeviceDetailsPage() {
           const data = await fetchDeviceById(id);
           if (data) {
             setDevice(data);
-            // @ts-ignore
-            setRelatedScans(data.scans || []);
+            const deviceScans = (data as any).scans || [];
+            setRelatedScans(deviceScans);
+
+            const scanIdFromQuery = searchParams.get('scanId');
+            if (scanIdFromQuery && deviceScans.length > 0) {
+              const scanToDisplay = deviceScans.find((s: Scan) => s.id === scanIdFromQuery && s.status === 'completed');
+              if (scanToDisplay) {
+                setCurrentScan(scanToDisplay);
+                // If this scan had AI analysis data (mocked for now), set it.
+                if (scanToDisplay.aiAnalysis) {
+                  setAiEnhancement(scanToDisplay.aiAnalysis);
+                }
+                if (scanToDisplay.summary && scanToDisplay.scanType === 'ai' && scanToDisplay.aiAnalysis?.confidenceScore) { // Crude check for AI summary
+                    setAiSummary({
+                        summary: scanToDisplay.summary,
+                        keyInsights: scanToDisplay.aiAnalysis.prioritizedRecommendations, // Or derive from summary
+                        confidenceScore: scanToDisplay.aiAnalysis.confidenceScore,
+                    });
+                } else if (scanToDisplay.summary && (scanToDisplay.scanType === 'web' || scanToDisplay.scanType === 'ai')) {
+                    setAiSummary({
+                        summary: scanToDisplay.summary,
+                        keyInsights: "Review scan results for details.", // Placeholder
+                        confidenceScore: 0.75, // Mock confidence
+                    });
+                }
+
+              }
+            }
           } else {
             notFound();
           }
@@ -89,25 +116,23 @@ export default function DeviceDetailsPage() {
       }
       loadDevice();
     }
-  }, [id, toast]);
+  }, [id, searchParams, toast]);
 
   const handleStartScan = async (scanType: ScanType) => {
     if (!device) return;
     setIsScanning(true);
     setScanLog([`Initializing ${scanType} scan...`]);
-    setCurrentScan(null);
+    setCurrentScan(null); // Clear any previously displayed scan (historical or new)
     setAiEnhancement(null);
     setAiSummary(null);
     setScanProgress(10);
 
     try {
       const scanJob = await triggerScan(device.id, scanType);
-      setCurrentScan(scanJob);
+      setCurrentScan(scanJob); // Initially set to pending/in_progress scan
       setScanLog(prev => [...prev, `Scan ${scanJob.id} started with status: ${scanJob.status}`]);
       setScanProgress(30);
 
-      // Simulate scan progress and AI calls
-      // In a real app, this would be driven by websockets or polling
       let progressInterval = setInterval(() => {
         setScanProgress(prev => {
           if (prev >= 90) return prev;
@@ -116,36 +141,52 @@ export default function DeviceDetailsPage() {
       }, 1000);
 
 
-      // Mock completion and AI processing after some time
       setTimeout(async () => {
         clearInterval(progressInterval);
         setScanProgress(100);
+        
         // Fetch updated scan details (mocked here by modifying currentScan)
-        const updatedScan = { 
-            ...scanJob, 
-            status: 'completed' as Scan['status'], 
-            results: [{ id: 'res1', scanId: scanJob.id, finding: 'Mock Finding', severity: 'medium', status: 'open', createdAt: new Date().toISOString() }] as ScanResult[],
-            vulnerabilitiesFound: 1,
-            completedAt: new Date().toISOString(),
-        };
-        setCurrentScan(updatedScan);
-        setRelatedScans(prev => [updatedScan, ...prev.filter(s => s.id !== updatedScan.id)]);
-        setScanLog(prev => [...prev, `Scan ${updatedScan.id} completed.`]);
+        // In a real app, you might poll a getScanStatus(scanJob.id) endpoint
+        const completedScan = mockScans.find(s => s.id === scanJob.id && s.status === 'completed'); // Find the completed mock scan
+        
+        if (completedScan) {
+            setCurrentScan(completedScan); // Set to the fully completed scan object from mockScans
+            setRelatedScans(prev => [completedScan, ...prev.filter(s => s.id !== completedScan.id)]);
+            setScanLog(prev => [...prev, `Scan ${completedScan.id} completed.`]);
 
-        if (scanType === 'ai' || scanType === 'web') {
-          setScanLog(prev => [...prev, `Performing AI analysis...`]);
-          const summary = await callSummarizeScanFindings(JSON.stringify(updatedScan.results));
-          setAiSummary(summary);
-          setScanLog(prev => [...prev, `AI Summary generated with confidence: ${summary.confidenceScore.toFixed(2)}`]);
-          if(scanType === 'ai'){
-            const enhancement = await callEnhanceScanWithAi(JSON.stringify(updatedScan.results));
-            setAiEnhancement(enhancement);
-            setScanLog(prev => [...prev, `AI Enhancement generated with confidence: ${enhancement.confidenceScore.toFixed(2)}`]);
-          }
+            // If AI analysis was part of the mock completed scan data, display it
+            if (completedScan.aiAnalysis) {
+                setAiEnhancement(completedScan.aiAnalysis);
+                setScanLog(prev => [...prev, `AI Enhancement generated with confidence: ${completedScan.aiAnalysis.confidenceScore.toFixed(2)}`]);
+            }
+            if (completedScan.summary && (completedScan.scanType === 'ai' || completedScan.scanType === 'web')) {
+                 // Attempt to reconstruct AISummary if possible from completedScan data
+                 // This is a bit of a hack due to mock data structure
+                setAiSummary({
+                    summary: completedScan.summary,
+                    keyInsights: completedScan.aiAnalysis?.prioritizedRecommendations || "Refer to scan results for key insights.",
+                    confidenceScore: completedScan.aiAnalysis?.confidenceScore || 0.7 // Mock confidence if not present
+                });
+                setScanLog(prev => [...prev, `AI Summary available.`]);
+            }
+
+        } else {
+             // Fallback if the mock scan wasn't updated properly in the background
+            const fallbackCompletedScan = { 
+                ...scanJob, 
+                status: 'completed' as Scan['status'], 
+                results: [{ id: 'res1', scanId: scanJob.id, finding: 'Mock Finding Fallback', severity: 'medium', status: 'open', createdAt: new Date().toISOString() }] as ScanResult[],
+                vulnerabilitiesFound: 1,
+                completedAt: new Date().toISOString(),
+                summary: "Scan completed (fallback)."
+            };
+            setCurrentScan(fallbackCompletedScan);
+            setRelatedScans(prev => [fallbackCompletedScan, ...prev.filter(s => s.id !== fallbackCompletedScan.id)]);
+            setScanLog(prev => [...prev, `Scan ${fallbackCompletedScan.id} completed (fallback).`]);
         }
-        // toast({ title: "Scan Complete", description: `${scanType} scan for ${device.name} finished.` }); // Removed informational toast
+        
         setIsScanning(false);
-      }, 5000); // simulate 5 seconds for scan + AI
+      }, 5000); 
 
     } catch (error) {
       console.error(`Failed to trigger ${scanType} scan:`, error);
@@ -158,8 +199,7 @@ export default function DeviceDetailsPage() {
   const handleSuggestRemediation = async (vuln: Vulnerability | ScanResult) => {
     if (!device) return;
     setSelectedVulnerability(vuln);
-    setAiSuggestion(null); // Clear previous
-    // toast({ title: "AI Processing", description: "Generating remediation steps..."}); // Removed informational toast
+    setAiSuggestion(null); 
     try {
       const suggestion = await callSuggestRemediationSteps(vuln.finding || (vuln as Vulnerability).name, device.name);
       setAiSuggestion(suggestion);
@@ -169,7 +209,7 @@ export default function DeviceDetailsPage() {
   };
 
 
-  if (loading) {
+  if (loading && !device) { // Ensure skeleton shows if device is null during initial load
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-3/4" />
@@ -241,7 +281,7 @@ export default function DeviceDetailsPage() {
           </CardContent>
           {isScanning && (
             <CardFooter className="flex-col items-start pt-4">
-              <p className="text-sm font-medium mb-2">Scan in progress: {currentScan?.scanType || ''}</p>
+              <p className="text-sm font-medium mb-2">Scan in progress: {currentScan?.scanType || ''} ({currentScan?.status.replace('_',' ') || ''})</p>
               <Progress value={scanProgress} className="w-full mb-2" />
               <div className="h-32 w-full bg-muted rounded-md p-2 overflow-y-auto text-xs font-mono">
                 {scanLog.map((log, i) => <div key={i}>{log}</div>)}
@@ -254,8 +294,8 @@ export default function DeviceDetailsPage() {
       {currentScan && currentScan.status === 'completed' && (
         <Card>
           <CardHeader>
-            <CardTitle>Scan Results: {currentScan.id}</CardTitle>
-            <CardDescription>Completed on {new Date(currentScan.completedAt!).toLocaleString()}</CardDescription>
+            <CardTitle>Scan Results: {currentScan.id.substring(0,12)}...</CardTitle>
+            <CardDescription>Type: <span className="capitalize">{currentScan.scanType}</span> - Completed on {new Date(currentScan.completedAt!).toLocaleString()}</CardDescription>
           </CardHeader>
           <CardContent>
             {aiSummary && (
@@ -263,9 +303,9 @@ export default function DeviceDetailsPage() {
                 <h3 className="font-semibold text-lg flex items-center gap-2"><Lightbulb className="text-yellow-500"/>AI Summary (Confidence: {aiSummary.confidenceScore.toFixed(2)})</h3>
                 <p className="text-sm text-muted-foreground mt-1">{aiSummary.summary}</p>
                 <h4 className="font-medium mt-2">Key Insights:</h4>
-                <ul className="list-disc list-inside text-sm text-muted-foreground">
-                  {aiSummary.keyInsights.split('\n- ').map((insight, i) => insight.trim() && <li key={i}>{insight.trim()}</li>)}
-                </ul>
+                 <div className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground">
+                    <pre className="whitespace-pre-wrap bg-transparent p-0">{aiSummary.keyInsights}</pre>
+                 </div>
               </div>
             )}
             {aiEnhancement && (
@@ -274,9 +314,9 @@ export default function DeviceDetailsPage() {
                 <h4 className="font-medium mt-2">Executive Summary:</h4>
                 <p className="text-sm text-muted-foreground mt-1">{aiEnhancement.executiveSummary}</p>
                 <h4 className="font-medium mt-2">Prioritized Recommendations:</h4>
-                 <ul className="list-decimal list-inside text-sm text-muted-foreground">
-                  {aiEnhancement.prioritizedRecommendations.split('\n').map((rec, i) => rec.trim().substring(rec.indexOf('.') + 1).trim() && <li key={i}>{rec.trim().substring(rec.indexOf('.') + 1).trim()}</li>)}
-                </ul>
+                 <div className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground">
+                    <pre className="whitespace-pre-wrap bg-transparent p-0">{aiEnhancement.prioritizedRecommendations}</pre>
+                 </div>
               </div>
             )}
             <h4 className="font-semibold mb-2">Vulnerabilities Found ({currentScan.vulnerabilitiesFound}):</h4>
@@ -361,3 +401,52 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
+
+// Added for mock data consistency
+const mockScans: Scan[] = Array.from({ length: 120 }, (_, i) => {
+  const deviceId = `device-fw-${(i % 55) + 1}`; // Match existing device IDs
+  const scanType = (['full', 'local', 'web', 'ai'] as ScanType[])[i % 4];
+  const statusOptions: ScanStatus[] = ['completed', 'in_progress', 'failed', 'pending'];
+  const status = statusOptions[i % statusOptions.length];
+  
+  let results: ScanResult[] = [];
+  if (status === 'completed') {
+    results = Array.from({ length: Math.floor(Math.random() * 3) + 1 }, (__, k) => ({
+        id: `scanresult-fw-hist-${i}-${k}`,
+        scanId: `scan-fw-hist-${i + 1}`,
+        finding: `Mock Historical Finding ${k+1} for scan ${i+1}`,
+        severity: (['critical', 'high', 'medium', 'low'] as const)[k%4],
+        status: (['open', 'closed'] as const)[k%2],
+        createdAt: new Date().toISOString(),
+    }));
+  }
+
+  let aiAnalysisData;
+  let summaryText;
+  if (status === 'completed' && (scanType === 'ai' || scanType === 'web')) {
+    aiAnalysisData = {
+        executiveSummary: `Mock AI Exec Summary for scan ${i+1}. Type: ${scanType}. Lorem ipsum dolor sit amet.`,
+        prioritizedRecommendations: `1. Mock Rec 1 for ${scanType}\n2. Mock Rec 2 for ${scanType}`,
+        confidenceScore: Math.random() * 0.3 + 0.65, // 0.65 - 0.95
+    };
+    summaryText = `AI Summary: ${results.filter(r => r.status === 'open').length} open findings. ${aiAnalysisData.executiveSummary.substring(0,50)}...`;
+  } else if (status === 'completed') {
+    summaryText = `Scan found ${results.filter(r => r.status === 'open').length} open issues.`;
+  }
+
+
+  return {
+    id: `scan-fw-hist-${i + 1}`,
+    deviceId: deviceId,
+    deviceName: `Device FW-${(i % 55) + 1}`, 
+    scanType,
+    status,
+    startedAt: status !== 'pending' ? new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toISOString() : undefined,
+    completedAt: status === 'completed' || status === 'failed' ? new Date(Date.now() - Math.random() * 1000 * 60 * 60 * (24 * 3 - 1)).toISOString() : undefined, // Ensure completed is before now
+    summary: summaryText,
+    aiAnalysis: aiAnalysisData,
+    results,
+    vulnerabilitiesFound: results.filter(r => r.status === 'open').length,
+    createdAt: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 10).toISOString(),
+  };
+}).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

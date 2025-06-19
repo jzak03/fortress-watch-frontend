@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -172,8 +173,7 @@ export default function ScanHistoryPage() {
                     <TableCell>{scan.completedAt ? new Date(scan.completedAt).toLocaleString() : 'N/A'}</TableCell>
                     <TableCell className="text-right">
                        <Button asChild variant="ghost" size="sm">
-                        {/* Link to a detailed scan report page if available */}
-                        <Link href={`/devices/${scan.deviceId}?scanId=${scan.id}`}> {/* Or a dedicated scan report page */}
+                        <Link href={`/devices/${scan.deviceId}?scanId=${scan.id}`}>
                            View <ExternalLink className="h-3 w-3 ml-1" />
                         </Link>
                       </Button>
@@ -202,3 +202,4 @@ export default function ScanHistoryPage() {
     </div>
   );
 }
+
