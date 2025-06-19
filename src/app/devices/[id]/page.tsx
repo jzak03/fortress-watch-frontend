@@ -311,8 +311,8 @@ export default function DeviceDetailsPage() {
                 <h3 className="font-semibold text-lg flex items-center gap-2"><Lightbulb className="text-yellow-500"/>AI Summary (Confidence: {aiSummary.confidenceScore.toFixed(2)})</h3>
                 <p className="text-sm text-muted-foreground mt-1">{aiSummary.summary}</p>
                 <h4 className="font-medium mt-2">Key Insights:</h4>
-                 <div className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground">
-                    <pre className="whitespace-pre-wrap bg-transparent p-0">{aiSummary.keyInsights}</pre>
+                 <div className="text-sm text-muted-foreground">
+                    <pre className="whitespace-pre-wrap font-sans">{aiSummary.keyInsights}</pre>
                  </div>
               </div>
             )}
@@ -322,8 +322,8 @@ export default function DeviceDetailsPage() {
                 <h4 className="font-medium mt-2">Executive Summary:</h4>
                 <p className="text-sm text-muted-foreground mt-1">{aiEnhancement.executiveSummary}</p>
                 <h4 className="font-medium mt-2">Prioritized Recommendations:</h4>
-                 <div className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground">
-                    <pre className="whitespace-pre-wrap bg-transparent p-0">{aiEnhancement.prioritizedRecommendations}</pre>
+                 <div className="text-sm text-muted-foreground">
+                    <pre className="whitespace-pre-wrap font-sans">{aiEnhancement.prioritizedRecommendations}</pre>
                  </div>
               </div>
             )}
@@ -390,8 +390,8 @@ export default function DeviceDetailsPage() {
                                 <div>
                                   <h4 className="font-medium mb-1.5 text-sm">Suggested Steps:</h4>
                                   <ScrollArea className="h-64 w-full rounded-md border p-3 bg-muted/20">
-                                    <div className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground"
-                                        dangerouslySetInnerHTML={{ __html: aiSuggestion.remediationSteps.replace(/\n/g, '<br />') }} // Basic conversion, consider a proper Markdown parser
+                                    <div className="text-sm text-muted-foreground"
+                                        dangerouslySetInnerHTML={{ __html: aiSuggestion.remediationSteps.replace(/\n/g, '<br />') }}
                                     />
                                   </ScrollArea>
                                 </div>
