@@ -390,9 +390,9 @@ export default function DeviceDetailsPage() {
                                 <div>
                                   <h4 className="font-medium mb-1.5 text-sm">Suggested Steps:</h4>
                                   <ScrollArea className="h-64 w-full rounded-md border p-3 bg-muted/20">
-                                    <pre className="text-xs whitespace-pre-wrap font-mono">
-                                      {aiSuggestion.remediationSteps}
-                                    </pre>
+                                    <div className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground"
+                                        dangerouslySetInnerHTML={{ __html: aiSuggestion.remediationSteps.replace(/\n/g, '<br />') }} // Basic conversion, consider a proper Markdown parser
+                                    />
                                   </ScrollArea>
                                 </div>
                               </div>
@@ -452,3 +452,4 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
+

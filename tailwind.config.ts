@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -93,7 +94,92 @@ export default {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
       },
+      typography: (theme: (path: string) => any) => ({
+        DEFAULT: {
+          css: {
+            color: theme('colors.foreground'),
+            a: {
+              color: theme('colors.primary.DEFAULT'),
+              '&:hover': {
+                color: theme('colors.primary.DEFAULT / 0.8'),
+              },
+            },
+            // Add more prose styles here as needed
+          },
+        },
+        sm: { // For prose-sm
+          css: {
+            color: theme('colors.muted.foreground'), // Example: use muted foreground for prose-sm
+             a: {
+              color: theme('colors.primary.DEFAULT'),
+              '&:hover': {
+                color: theme('colors.primary.DEFAULT / 0.8'),
+              },
+            },
+            // You can define specific styles for 'prose-sm'
+             code: {
+              backgroundColor: theme('colors.muted.DEFAULT'),
+              color: theme('colors.muted.foreground'),
+              padding: '0.2em 0.4em',
+              borderRadius: theme('borderRadius.sm'),
+            },
+            pre: {
+              backgroundColor: theme('colors.muted.DEFAULT / 0.5'),
+              color: theme('colors.foreground'),
+              padding: theme('spacing.4'),
+              borderRadius: theme('borderRadius.md'),
+              overflowX: 'auto',
+            },
+            'pre code': {
+              backgroundColor: 'transparent',
+              color: 'inherit',
+              padding: '0',
+              borderRadius: '0',
+            },
+            'ul > li::before': { backgroundColor: theme('colors.primary.DEFAULT') },
+            'ol > li::before': { color: theme('colors.primary.DEFAULT') },
+            strong: { color: theme('colors.foreground')},
+            h1: { color: theme('colors.foreground') },
+            h2: { color: theme('colors.foreground') },
+            h3: { color: theme('colors.foreground') },
+            h4: { color: theme('colors.foreground') },
+          }
+        },
+        invert: { // For dark:prose-invert
+            css: {
+                color: theme('colors.background'), // Example: use background (light) for inverted text color
+                a: {
+                    color: theme('colors.primary.DEFAULT'), // Keep links primary
+                    '&:hover': {
+                        color: theme('colors.primary.DEFAULT / 0.8'),
+                    },
+                },
+                 code: {
+                  backgroundColor: theme('colors.secondary.DEFAULT'),
+                  color: theme('colors.secondary.foreground'),
+                },
+                pre: {
+                  backgroundColor: theme('colors.secondary.DEFAULT / 0.5'),
+                  color: theme('colors.background'),
+                },
+                'pre code': {
+                  color: 'inherit',
+                },
+                'ul > li::before': { backgroundColor: theme('colors.primary.DEFAULT') },
+                'ol > li::before': { color: theme('colors.primary.DEFAULT') },
+                strong: { color: theme('colors.background')},
+                h1: { color: theme('colors.background') },
+                h2: { color: theme('colors.background') },
+                h3: { color: theme('colors.background') },
+                h4: { color: theme('colors.background') },
+            }
+        }
+      }),
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+    require('@tailwindcss/typography'),
+  ],
 } satisfies Config;
+
