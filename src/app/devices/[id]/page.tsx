@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -142,7 +143,7 @@ export default function DeviceDetailsPage() {
             setScanLog(prev => [...prev, `AI Enhancement generated with confidence: ${enhancement.confidenceScore.toFixed(2)}`]);
           }
         }
-        toast({ title: "Scan Complete", description: `${scanType} scan for ${device.name} finished.` });
+        // toast({ title: "Scan Complete", description: `${scanType} scan for ${device.name} finished.` }); // Removed informational toast
         setIsScanning(false);
       }, 5000); // simulate 5 seconds for scan + AI
 
@@ -158,7 +159,7 @@ export default function DeviceDetailsPage() {
     if (!device) return;
     setSelectedVulnerability(vuln);
     setAiSuggestion(null); // Clear previous
-    toast({ title: "AI Processing", description: "Generating remediation steps..."});
+    // toast({ title: "AI Processing", description: "Generating remediation steps..."}); // Removed informational toast
     try {
       const suggestion = await callSuggestRemediationSteps(vuln.finding || (vuln as Vulnerability).name, device.name);
       setAiSuggestion(suggestion);

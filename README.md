@@ -1,5 +1,7 @@
-# Firebase Studio
+# Fortress Watch
 
-This is a NextJS starter in Firebase Studio.
+Fortress Watch is a comprehensive Vulnerability Management Platform. It helps manage device versions and detect vulnerable firmware.
 
-To get started, take a look at src/app/page.tsx.
+This application is built with NextJS, React, ShadCN UI, Tailwind CSS, and Genkit for AI features.
+
+To explore the application, start with the [Dashboard](/dashboard).

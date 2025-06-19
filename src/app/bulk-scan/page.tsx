@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScanSearch, Check, Loader2 } from 'lucide-react';
+import { ScanSearch, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { DeviceTable } from '@/components/devices/DeviceTable'; // Reuse device table for selection
 import { DeviceFilters } from '@/components/devices/DeviceFilters';
 import { PaginationControls } from '@/components/common/PaginationControls';
@@ -25,6 +26,7 @@ export default function BulkScanPage() {
   const [scanJobId, setScanJobId] = useState<string | null>(null);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const [filters, setFilters] = useState<DeviceFiltersType>({ page: 1, limit: ITEMS_PER_PAGE });
+  const [selectionError, setSelectionError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const loadDevices = useCallback(async (currentFilters: DeviceFiltersType) => {
@@ -71,9 +73,10 @@ export default function BulkScanPage() {
 
   const handleStartBulkScan = async () => {
     if (selectedDeviceIds.size === 0) {
-      toast({ title: "No Devices Selected", description: "Please select at least one device to scan.", variant: "default" });
+      setSelectionError("Please select at least one device to scan.");
       return;
     }
+    setSelectionError(null); // Clear error if proceeding
     setIsScanning(true);
     setScanJobId(null);
     setScanMessage(null);
@@ -81,7 +84,7 @@ export default function BulkScanPage() {
       const result = await triggerBulkScan(Array.from(selectedDeviceIds));
       setScanJobId(result.jobId);
       setScanMessage(result.message);
-      toast({ title: "Bulk Scan Started", description: result.message, variant: "default" });
+      // toast({ title: "Bulk Scan Started", description: result.message, variant: "default" }); // Removed informational toast
       setSelectedDeviceIds(new Set()); // Clear selection after starting
     } catch (error) {
       console.error("Failed to start bulk scan:", error);
@@ -118,6 +121,14 @@ export default function BulkScanPage() {
         </Button>
       </div>
       <CardDescription>Select devices from the list below to include in the bulk scan operation. A full scan will be initiated for each selected device.</CardDescription>
+
+      {selectionError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Selection Required</AlertTitle>
+          <AlertDescription>{selectionError}</AlertDescription>
+        </Alert>
+      )}
 
       {scanJobId && scanMessage && (
         <Alert variant={scanMessage.toLowerCase().includes('failed') ? "destructive" : "default"} className="mb-4">
