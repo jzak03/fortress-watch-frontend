@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -543,51 +544,71 @@ const SidebarMenuButton = React.forwardRef<
 >(
   (
     {
-      asChild = false,
-      isActive = false,
+      asChild: propAsChild,
+      isActive,
       variant = "default",
       size = "default",
       tooltip,
       className,
-      ...props
+      children,
+      ...restButtonProps
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : "button"
     const { isMobile, state } = useSidebar()
 
-    const button = (
-      <Comp
-        ref={ref}
-        data-sidebar="menu-button"
-        data-size={size}
-        data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-        {...props}
-      />
-    )
-
-    if (!tooltip) {
-      return button
+    const actualButtonProps: any = {
+      ref,
+      "data-sidebar": "menu-button",
+      "data-size": size,
+      "data-active": isActive,
+      className: cn(sidebarMenuButtonVariants({ variant, size }), className),
+      ...restButtonProps,
     }
 
-    if (typeof tooltip === "string") {
-      tooltip = {
-        children: tooltip,
+    if (tooltip) {
+      const tooltipContentProps = typeof tooltip === "string" ? { children: tooltip } : tooltip
+      
+      let triggerElement: React.ReactElement;
+
+      if (propAsChild) {
+        // Ensure children is a single React element
+        const childElement = React.Children.only(children) as React.ReactElement;
+        // Clone the child (e.g., Link) and merge SidebarMenuButton's props onto it
+        triggerElement = React.cloneElement(childElement, {
+          ...actualButtonProps,
+          // Merge className carefully
+          className: cn(actualButtonProps.className, childElement.props.className),
+          // Spread other props from child, allowing actualButtonProps to override if necessary
+          ...childElement.props,
+        });
+      } else {
+        // SidebarMenuButton is a regular button
+        triggerElement = (
+          <button {...actualButtonProps}>
+            {children}
+          </button>
+        );
       }
-    }
 
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{button}</TooltipTrigger>
-        <TooltipContent
-          side="right"
-          align="center"
-          hidden={state !== "collapsed" || isMobile}
-          {...tooltip}
-        />
-      </Tooltip>
-    )
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {triggerElement}
+          </TooltipTrigger>
+          <TooltipContent
+            side="right"
+            align="center"
+            hidden={state !== "collapsed" || isMobile}
+            {...tooltipContentProps}
+          />
+        </Tooltip>
+      )
+    }
+    
+    // No tooltip
+    const Comp = propAsChild ? Slot : "button"
+    return <Comp {...actualButtonProps}>{children}</Comp>
   }
 )
 SidebarMenuButton.displayName = "SidebarMenuButton"
@@ -761,3 +782,4 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
