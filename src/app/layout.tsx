@@ -89,9 +89,44 @@ export default function RootLayout({
                 {/* Search can be added here if needed globally */}
               </div>
               <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" aria-label="Notifications">
-                  <Bell className="h-5 w-5" suppressHydrationWarning />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" aria-label="Notifications">
+                      <Bell className="h-5 w-5" suppressHydrationWarning />
+                      <span className="sr-only">Notifications</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-80 sm:w-96">
+                    <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium">New Scan Completed</p>
+                        <p className="text-xs text-muted-foreground">Device FW-101 scan finished successfully.</p>
+                        <p className="text-xs text-blue-500">2 minutes ago</p>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium text-destructive">Critical Alert</p>
+                        <p className="text-xs text-muted-foreground">High severity vulnerability found on Main-Router.</p>
+                         <p className="text-xs text-destructive">15 minutes ago</p>
+                      </div>
+                    </DropdownMenuItem>
+                     <DropdownMenuItem>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium">Report Ready</p>
+                        <p className="text-xs text-muted-foreground">Your 'Quarterly Summary' report is ready for download.</p>
+                         <p className="text-xs text-blue-500">1 hour ago</p>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="justify-center">
+                      <Button variant="link" size="sm" className="p-0 h-auto">View all notifications</Button>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="rounded-full">
@@ -102,8 +137,12 @@ export default function RootLayout({
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>Profile</DropdownMenuItem>
-                    <DropdownMenuItem>Settings</DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile">Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/settings">Settings</Link>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>Logout</DropdownMenuItem>
                   </DropdownMenuContent>
