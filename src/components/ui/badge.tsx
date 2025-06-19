@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -14,8 +15,8 @@ const badgeVariants = cva(
           "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground border-current", // Changed to use current text color for border
-        success: "border-transparent bg-green-500 text-white hover:bg-green-500/80 dark:bg-green-600 dark:hover:bg-green-600/80" // Added success variant using accent color logic
+        outline: "text-foreground border-border", // Use theme border color for outline
+        success: "border-transparent bg-accent text-accent-foreground hover:bg-accent/80" // Use theme accent color for success
       },
     },
     defaultVariants: {

@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Laptop, Smartphone, Server, Tablet, ScanLine, AlertTriangle, CheckCircle2, ShieldCheck, Lightbulb, Brain, Globe, Activity, CalendarDays, Tag, ListChecks, BarChartHorizontalBig } from 'lucide-react';
+import { Laptop, Smartphone, Server, Tablet, ScanLine, AlertTriangle, CheckCircle2, ShieldCheck, Lightbulb, Brain, Globe, Activity, CalendarDays, Tag, ListChecks, BarChartHorizontalBig, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -25,6 +25,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const getDeviceIcon = (brand?: string) => {
   if (!brand) return Laptop;
@@ -36,12 +38,12 @@ const getDeviceIcon = (brand?: string) => {
   return Laptop; // Default
 };
 
-const severityBadgeVariant = (severity: Vulnerability['severity'] | ScanResult['severity']): 'destructive' | 'default' | 'secondary' | 'outline' => {
+const severityBadgeVariant = (severity: Vulnerability['severity'] | ScanResult['severity']): 'destructive' | 'default' | 'secondary' | 'outline' | 'success' => {
   switch (severity) {
     case 'critical': return 'destructive';
-    case 'high': return 'default'; 
-    case 'medium': return 'secondary'; 
-    case 'low': return 'outline'; 
+    case 'high': return 'default';
+    case 'medium': return 'secondary';
+    case 'low': return 'outline';
     default: return 'outline';
   }
 };
@@ -61,10 +63,13 @@ export default function DeviceDetailsPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
 
+  const [selectedVulnerabilityForSuggestion, setSelectedVulnerabilityForSuggestion] = useState<Vulnerability | ScanResult | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<AISuggestion | null>(null);
+  const [isLoadingAiSuggestion, setIsLoadingAiSuggestion] = useState(false);
+  const [aiSuggestionError, setAiSuggestionError] = useState<string | null>(null);
+
   const [aiEnhancement, setAiEnhancement] = useState<AIEnhancement | null>(null);
   const [aiSummary, setAiSummary] = useState<AISummary | null>(null);
-  const [selectedVulnerability, setSelectedVulnerability] = useState<Vulnerability | ScanResult | null>(null);
 
 
   useEffect(() => {
@@ -75,13 +80,13 @@ export default function DeviceDetailsPage() {
           const data = await fetchDeviceById(id);
           if (data) {
             setDevice(data);
-            const deviceScans = (data as any).scans || []; // Scans are attached in fetchDeviceById
+            const deviceScans = (data as any).scans || [];
             setRelatedScans(deviceScans.sort((a: Scan, b: Scan) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
 
             const scanIdFromQuery = searchParams.get('scanId');
             if (scanIdFromQuery && deviceScans.length > 0) {
               const scanToDisplay = deviceScans.find((s: Scan) => s.id === scanIdFromQuery);
-              if (scanToDisplay && scanToDisplay.status === 'completed') { // Only display details for completed scans from query
+              if (scanToDisplay && scanToDisplay.status === 'completed') {
                 setCurrentScan(scanToDisplay);
                 if (scanToDisplay.aiAnalysis) {
                   setAiEnhancement(scanToDisplay.aiAnalysis);
@@ -90,14 +95,10 @@ export default function DeviceDetailsPage() {
                     setAiSummary({
                         summary: scanToDisplay.summary,
                         keyInsights: scanToDisplay.aiAnalysis?.prioritizedRecommendations || "Refer to scan results for details.",
-                        confidenceScore: scanToDisplay.aiAnalysis?.confidenceScore || 0.70, // Default confidence if not present
+                        confidenceScore: scanToDisplay.aiAnalysis?.confidenceScore || 0.70,
                     });
                 }
               } else if (scanToDisplay) {
-                // If scan from query is not completed, we can still set it to show its status (e.g. in_progress)
-                // but results section might be empty or show 'in progress'.
-                // For now, we are focusing on completed scans for detailed view from history.
-                // You could add logic here to show basic info for non-completed scans from URL too.
                 console.log("Scan from URL is not completed, not setting as current detailed scan:", scanToDisplay);
               }
             }
@@ -119,14 +120,14 @@ export default function DeviceDetailsPage() {
     if (!device) return;
     setIsScanning(true);
     setScanLog([`Initializing ${scanType} scan...`]);
-    setCurrentScan(null); 
+    setCurrentScan(null);
     setAiEnhancement(null);
     setAiSummary(null);
     setScanProgress(10);
 
     try {
       const scanJob = await triggerScan(device.id, scanType);
-      setCurrentScan(scanJob); 
+      setCurrentScan(scanJob);
       setScanLog(prev => [...prev, `Scan ${scanJob.id} started with status: ${scanJob.status}`]);
       setScanProgress(30);
 
@@ -137,14 +138,10 @@ export default function DeviceDetailsPage() {
         });
       }, 1000);
 
-      // Simulate waiting for scan completion. In real app, this would be a poll or webhook.
-      // The triggerScan mock in api.ts already simulates this background update.
-      // We need to re-fetch the device or scan list after a delay to get updated scan.
       setTimeout(async () => {
         clearInterval(progressInterval);
         setScanProgress(100);
         
-        // Re-fetch device to get the latest scans list which should include the completed scan
         const updatedDeviceData = await fetchDeviceById(id);
         if (updatedDeviceData) {
             const updatedDeviceScans = (updatedDeviceData as any).scans || [];
@@ -163,14 +160,14 @@ export default function DeviceDetailsPage() {
                     setAiSummary({
                         summary: completedScan.summary,
                         keyInsights: completedScan.aiAnalysis?.prioritizedRecommendations || "Refer to scan results for key insights.",
-                        confidenceScore: completedScan.aiAnalysis?.confidenceScore || 0.7 
+                        confidenceScore: completedScan.aiAnalysis?.confidenceScore || 0.7
                     });
                     setScanLog(prev => [...prev, `AI Summary available.`]);
                 }
             } else {
-                 const fallbackCompletedScan = { 
-                    ...scanJob, 
-                    status: 'completed' as ScanStatus, 
+                 const fallbackCompletedScan = {
+                    ...scanJob,
+                    status: 'completed' as ScanStatus,
                     results: [{ id: 'res1', scanId: scanJob.id, finding: 'Mock Finding Fallback', severity: 'medium', status: 'open', createdAt: new Date().toISOString() }] as ScanResult[],
                     vulnerabilitiesFound: 1,
                     completedAt: new Date().toISOString(),
@@ -182,7 +179,7 @@ export default function DeviceDetailsPage() {
             }
         }
         setIsScanning(false);
-      }, 5000); 
+      }, 5000);
 
     } catch (error) {
       console.error(`Failed to trigger ${scanType} scan:`, error);
@@ -194,14 +191,29 @@ export default function DeviceDetailsPage() {
 
   const handleSuggestRemediation = async (vuln: Vulnerability | ScanResult) => {
     if (!device) return;
-    setSelectedVulnerability(vuln);
-    setAiSuggestion(null); 
+    
+    setIsLoadingAiSuggestion(true);
+    setAiSuggestion(null);
+    setAiSuggestionError(null);
+    // No need to set selectedVulnerabilityForSuggestion here, it's set by DialogTrigger's onClick
+
     try {
       const suggestion = await callSuggestRemediationSteps(vuln.finding || (vuln as Vulnerability).name, device.name);
       setAiSuggestion(suggestion);
     } catch (error) {
+      console.error("AI Suggestion Error:", error);
+      setAiSuggestionError("Failed to load AI remediation suggestions. Please try again later.");
       toast({ title: "Error", description: "Could not get AI remediation suggestions.", variant: "destructive" });
+    } finally {
+      setIsLoadingAiSuggestion(false);
     }
+  };
+
+  const handleDialogClose = () => {
+    setAiSuggestion(null);
+    setAiSuggestionError(null);
+    setIsLoadingAiSuggestion(false);
+    setSelectedVulnerabilityForSuggestion(null);
   };
 
 
@@ -234,7 +246,7 @@ export default function DeviceDetailsPage() {
             <p className="text-muted-foreground">{device.brand} {device.model}</p>
           </div>
         </div>
-        <Badge variant={device.isActive ? 'default' : 'destructive'} className={cn(device.isActive ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300', 'capitalize text-sm py-1 px-3')}>
+        <Badge variant={device.isActive ? 'success' : 'destructive'} className={cn(device.isActive ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300', 'capitalize text-sm py-1 px-3')}>
           {device.isActive ? 'Active' : 'Inactive'}
         </Badge>
       </div>
@@ -326,23 +338,66 @@ export default function DeviceDetailsPage() {
                       <TableCell><Badge variant={severityBadgeVariant(res.severity)} className="capitalize">{res.severity}</Badge></TableCell>
                       <TableCell><Badge variant={res.status === 'open' ? 'destructive' : 'default'} className="capitalize">{res.status}</Badge></TableCell>
                       <TableCell className="text-right">
-                        <Dialog>
+                        <Dialog onOpenChange={(open) => { if (!open) handleDialogClose(); }}>
                           <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" onClick={() => handleSuggestRemediation(res)}>
-                              <Lightbulb className="h-4 w-4 mr-1" /> Suggest Fix
+                            <Button variant="ghost" size="sm" onClick={() => { setSelectedVulnerabilityForSuggestion(res); handleSuggestRemediation(res); }}>
+                              {isLoadingAiSuggestion && selectedVulnerabilityForSuggestion?.id === res.id ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Lightbulb className="h-4 w-4 mr-1" />}
+                              Suggest Fix
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-xl">
                             <DialogHeader>
-                              <DialogTitle>AI Remediation Suggestion for: {selectedVulnerability?.finding}</DialogTitle>
-                              <DialogDescription>Confidence: {aiSuggestion ? aiSuggestion.confidenceScore.toFixed(2) : "Loading..."}</DialogDescription>
+                              <DialogTitle className="flex items-center gap-2">
+                                <Lightbulb className="h-5 w-5 text-yellow-500" />
+                                AI Remediation Suggestion
+                              </DialogTitle>
+                              <DialogDescription>
+                                For: <span className="font-semibold">{selectedVulnerabilityForSuggestion?.finding || (selectedVulnerabilityForSuggestion as Vulnerability)?.name}</span>
+                              </DialogDescription>
                             </DialogHeader>
-                            {aiSuggestion ? (
-                              <div className="prose prose-sm max-w-none dark:prose-invert">
-                                <pre className="whitespace-pre-wrap">{aiSuggestion.remediationSteps}</pre>
+
+                            {isLoadingAiSuggestion && (
+                              <div className="space-y-3 my-4 py-4">
+                                <div className="flex items-center space-x-2">
+                                  <Skeleton className="h-5 w-5 rounded-full" />
+                                  <Skeleton className="h-4 w-1/3" />
+                                </div>
+                                <Skeleton className="h-20 w-full" />
+                                <Skeleton className="h-8 w-1/4" />
                               </div>
-                            ) : <Skeleton className="h-20 w-full" />}
-                            <DialogFooter>
+                            )}
+
+                            {aiSuggestionError && !isLoadingAiSuggestion && (
+                              <Alert variant="destructive" className="my-4">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>Error Fetching Suggestion</AlertTitle>
+                                <AlertDescription>{aiSuggestionError}</AlertDescription>
+                              </Alert>
+                            )}
+
+                            {aiSuggestion && !isLoadingAiSuggestion && !aiSuggestionError && (
+                              <div className="mt-2 space-y-4">
+                                <div className="flex items-center text-sm">
+                                  <ShieldCheck className="h-5 w-5 mr-2 text-accent" />
+                                  <span className="font-medium">Confidence Score:</span>
+                                  <Badge 
+                                    variant={aiSuggestion.confidenceScore > 0.7 ? 'success' : aiSuggestion.confidenceScore > 0.4 ? 'default' : 'secondary'} 
+                                    className="ml-2 text-xs"
+                                  >
+                                    {aiSuggestion.confidenceScore.toFixed(2)}
+                                  </Badge>
+                                </div>
+                                <div>
+                                  <h4 className="font-medium mb-1.5 text-sm">Suggested Steps:</h4>
+                                  <ScrollArea className="h-64 w-full rounded-md border p-3 bg-muted/20">
+                                    <pre className="text-xs whitespace-pre-wrap font-mono">
+                                      {aiSuggestion.remediationSteps}
+                                    </pre>
+                                  </ScrollArea>
+                                </div>
+                              </div>
+                            )}
+                            <DialogFooter className="mt-6">
                                 <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
                             </DialogFooter>
                           </DialogContent>
@@ -379,7 +434,7 @@ export default function DeviceDetailsPage() {
                     <TableCell className="font-mono text-xs">{scan.id.substring(0,12)}...</TableCell>
                     <TableCell className="capitalize">{scan.scanType}</TableCell>
                     <TableCell>
-                      <Badge variant={scan.status === 'completed' ? 'default' : scan.status === 'failed' ? 'destructive' : 'secondary'} className="capitalize bg-opacity-80">
+                      <Badge variant={scan.status === 'completed' ? 'success' : scan.status === 'failed' ? 'destructive' : 'secondary'} className="capitalize bg-opacity-80">
                         {scan.status.replace('_', ' ')}
                       </Badge>
                     </TableCell>
