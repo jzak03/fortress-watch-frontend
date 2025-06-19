@@ -53,7 +53,7 @@ export default function RootLayout({
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild tooltip={item.label}>
                       <Link href={item.href}>
-                        <item.icon />
+                        <item.icon suppressHydrationWarning />
                         <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -66,14 +66,14 @@ export default function RootLayout({
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Settings">
                     <Link href="/settings">
-                      <Settings2 />
+                      <Settings2 suppressHydrationWarning />
                       <span>Settings</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                  <SidebarMenuItem>
                     <SidebarMenuButton tooltip="Logout">
-                      <LogOut />
+                      <LogOut suppressHydrationWarning />
                       <span>Logout</span>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -82,18 +82,20 @@ export default function RootLayout({
           </Sidebar>
           <SidebarInset>
             <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6 shadow-sm">
-              <SidebarTrigger className="md:hidden" />
+              <SidebarTrigger className="md:hidden">
+                <PanelLeft suppressHydrationWarning />
+              </SidebarTrigger>
               <div className="flex-1">
                 {/* Search can be added here if needed globally */}
               </div>
               <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon" aria-label="Notifications">
-                  <Bell className="h-5 w-5" />
+                  <Bell className="h-5 w-5" suppressHydrationWarning />
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="rounded-full">
-                      <UserCircle className="h-6 w-6" />
+                      <UserCircle className="h-6 w-6" suppressHydrationWarning />
                        <span className="sr-only">User Menu</span>
                     </Button>
                   </DropdownMenuTrigger>
