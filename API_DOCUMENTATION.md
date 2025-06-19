@@ -15,10 +15,19 @@ This document outlines the API endpoints and data schemas for the Fortress Watch
     *   [CustomReportParams](#customreportparams-model)
     *   [CustomReportResponse](#customreportresponse-model)
     *   [PaginatedResponse](#paginatedresponse-model)
+    *   [UserProfileSettings](#userprofilesettings-model)
+    *   [NotificationPreferences](#notificationpreferences-model)
+    *   [PasswordChangeRequest](#passwordchangerequest-model)
+    *   [TwoFactorAuthStatus](#twofactorauthstatus-model)
+    *   [Notification](#notification-model)
+    *   [ActivityLogEntry](#activitylogentry-model)
 3.  [Device Endpoints](#device-endpoints)
 4.  [Scan Endpoints](#scan-endpoints)
 5.  [Report Endpoints](#report-endpoints)
 6.  [AI Service Endpoints (Server Actions)](#ai-service-endpoints-server-actions)
+7.  [Settings Endpoints](#settings-endpoints)
+8.  [Notification Endpoints](#notification-endpoints)
+9.  [Security Endpoints](#security-endpoints)
 
 ---
 
@@ -30,7 +39,7 @@ This document outlines the API endpoints and data schemas for the Fortress Watch
 
 ## 2. Data Models
 
-These are the primary data structures used throughout the API. They correspond to the types defined in `src/types/index.ts`.
+These are the primary data structures used throughout the API. They correspond to the types defined in `src/types/index.ts` or are specific to API interactions.
 
 ### Device Model
 
@@ -173,7 +182,7 @@ Response after requesting a custom report.
   "data": { // Optional, present if status is 'completed'
     "downloadLink": "string (url to download the report, optional)",
     "details": "any (report-specific data, optional)",
-    "filtersApplied": { 
+    "filtersApplied": {
       "device_brands": ["string"],
       "severity_levels": ["string"],
       "date_range": { "start": "string", "end": "string" }
@@ -196,6 +205,77 @@ A generic wrapper for paginated list responses.
   "totalPages": "number",
   "totalItems": "number",
   "itemsPerPage": "number"
+}
+```
+
+### UserProfileSettings Model
+Represents user profile settings that can be updated.
+```json
+{
+  "name": "string",
+  "email": "string (email format)",
+  "avatarUrl": "string (url, optional)"
+}
+```
+
+### NotificationPreferences Model
+Represents user's notification preferences.
+```json
+{
+  "emailNotifications": "boolean",
+  "pushNotifications": "boolean",
+  "notificationCategories": { // Optional, for fine-grained control
+    "scanCompletion": "boolean",
+    "criticalAlerts": "boolean",
+    "reportReady": "boolean"
+  }
+}
+```
+
+### PasswordChangeRequest Model
+Request body for changing password.
+```json
+{
+  "currentPassword": "string",
+  "newPassword": "string"
+}
+```
+
+### TwoFactorAuthStatus Model
+Status and details for 2FA.
+```json
+{
+  "isEnabled": "boolean",
+  "setupKey": "string (optional, for TOTP setup, only present if isEnabled is false and setup is initiated)",
+  "qrCodeUri": "string (optional, data URI for QR code, only present if isEnabled is false and setup is initiated)",
+  "recoveryCodes": ["string (optional, provided once upon enabling 2FA)"]
+}
+```
+
+### Notification Model
+Represents a single notification for a user.
+```json
+{
+  "id": "string (uuid)",
+  "type": "string ('scan_completed' | 'critical_alert' | 'report_ready' | 'system_update')",
+  "title": "string",
+  "message": "string",
+  "isRead": "boolean",
+  "link": "string (optional, e.g., to a specific device or report)",
+  "createdAt": "string (ISO 8601 datetime)"
+}
+```
+
+### ActivityLogEntry Model
+Represents a single entry in the user's activity log.
+```json
+{
+  "id": "string (uuid)",
+  "timestamp": "string (ISO 8601 datetime)",
+  "action": "string (e.g., 'user_login', 'device_view', 'scan_started')",
+  "details": "string (Description of the activity)",
+  "ipAddress": "string (optional)",
+  "targetResourceId": "string (optional, e.g., deviceId, scanId)"
 }
 ```
 
@@ -416,3 +496,138 @@ These endpoints are typically invoked as Server Actions in a Next.js application
 
 ---
 
+## 7. Settings Endpoints
+
+Manage user-specific settings.
+
+### `GET /settings/profile`
+- **Purpose**: Get current user's profile settings.
+- **Response**: `200 OK` - `UserProfileSettings`
+
+### `PUT /settings/profile`
+- **Purpose**: Update current user's profile settings.
+- **Request Body**: `UserProfileSettings`
+- **Response**: `200 OK` - `UserProfileSettings` (updated object)
+
+### `GET /settings/notifications`
+- **Purpose**: Get current user's notification preferences.
+- **Response**: `200 OK` - `NotificationPreferences`
+
+### `PUT /settings/notifications`
+- **Purpose**: Update current user's notification preferences.
+- **Request Body**: `NotificationPreferences`
+- **Response**: `200 OK` - `NotificationPreferences` (updated object)
+
+### `POST /settings/password`
+- **Purpose**: Change current user's password.
+- **Request Body**: `PasswordChangeRequest`
+- **Response**: `200 OK`
+  ```json
+  {
+    "message": "Password changed successfully."
+  }
+  ```
+  or `400 Bad Request` if current password is incorrect or new password doesn't meet criteria.
+
+### `GET /settings/2fa`
+- **Purpose**: Get the status of Two-Factor Authentication for the current user.
+- **Response**: `200 OK` - `TwoFactorAuthStatus`
+
+### `POST /settings/2fa/enable`
+- **Purpose**: Initiate the process to enable 2FA. May return a setup key and QR code.
+- **Request Body**: (empty or may include 2FA method type if multiple are supported)
+- **Response**: `200 OK` - `TwoFactorAuthStatus` (with `setupKey` and `qrCodeUri` if applicable)
+  ```json
+  // Example if TOTP is being set up
+  {
+    "isEnabled": false,
+    "setupKey": "JBSWY3DPEHPK3PXP",
+    "qrCodeUri": "data:image/png;base64,..."
+  }
+  ```
+
+### `POST /settings/2fa/verify`
+- **Purpose**: Verify the 2FA code provided by the user during setup or login.
+- **Request Body**:
+  ```json
+  {
+    "token": "string (e.g., 6-digit code from authenticator app)"
+  }
+  ```
+- **Response**: `200 OK` (if token is valid)
+  ```json
+  {
+    "message": "2FA verified successfully.",
+    "recoveryCodes": ["string"] // If enabling, provide recovery codes
+  }
+  ```
+  or `400 Bad Request` if token is invalid.
+
+### `POST /settings/2fa/disable`
+- **Purpose**: Disable 2FA for the current user. May require current password or 2FA code for confirmation.
+- **Request Body**:
+  ```json
+  {
+    "confirmationToken": "string (e.g., current password or a 2FA code)"
+  }
+  ```
+- **Response**: `200 OK`
+  ```json
+  {
+    "message": "Two-Factor Authentication disabled successfully."
+  }
+  ```
+
+---
+
+## 8. Notification Endpoints
+
+Manage user notifications.
+
+### `GET /notifications`
+- **Purpose**: List notifications for the current user.
+- **Query Parameters**:
+    - `page`: number (default: 1)
+    - `limit`: number (default: 10)
+    - `status`: string ('read' | 'unread' | 'all', default: 'unread')
+- **Response**: `200 OK` - `PaginatedResponse<Notification>`
+
+### `POST /notifications/{id}/read`
+- **Purpose**: Mark a specific notification as read.
+- **Path Parameters**:
+    - `id`: string (Notification ID)
+- **Response**: `200 OK` - `Notification` (the updated notification object)
+
+### `POST /notifications/read-all`
+- **Purpose**: Mark all unread notifications as read for the current user.
+- **Response**: `200 OK`
+  ```json
+  {
+    "message": "All notifications marked as read."
+  }
+  ```
+
+### `DELETE /notifications/{id}`
+- **Purpose**: Delete a specific notification.
+- **Path Parameters**:
+    - `id`: string (Notification ID)
+- **Response**: `204 No Content` or `200 OK` with confirmation.
+
+---
+
+## 9. Security Endpoints
+
+Endpoints related to user security and audit trails.
+
+### `GET /security/activity-log`
+- **Purpose**: Get the activity log for the current user.
+- **Query Parameters**:
+    - `page`: number (default: 1)
+    - `limit`: number (default: 20)
+    - `actionType`: string (filter by specific action, e.g., 'user_login')
+    - `startDate`: string (ISO 8601 date)
+    - `endDate`: string (ISO 8601 date)
+- **Response**: `200 OK` - `PaginatedResponse<ActivityLogEntry>`
+
+---
+```
