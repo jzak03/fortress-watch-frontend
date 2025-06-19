@@ -16,10 +16,11 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button'; // Added buttonVariants
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { NavLinks } from '@/config/nav';
+import { cn } from '@/lib/utils'; // Added cn
 
 export const metadata: Metadata = {
   title: 'Fortress Watch',
@@ -90,11 +91,12 @@ export default function RootLayout({
               </div>
               <div className="flex items-center gap-4">
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" aria-label="Notifications">
-                      <Bell className="h-5 w-5" suppressHydrationWarning />
-                      <span className="sr-only">Notifications</span>
-                    </Button>
+                  <DropdownMenuTrigger 
+                    className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+                    aria-label="Notifications"
+                  >
+                    <Bell className="h-5 w-5" suppressHydrationWarning />
+                    <span className="sr-only">Notifications</span>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-80 sm:w-96">
                     <DropdownMenuLabel>Notifications</DropdownMenuLabel>
@@ -128,11 +130,12 @@ export default function RootLayout({
                 </DropdownMenu>
 
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                      <UserCircle className="h-6 w-6" suppressHydrationWarning />
-                       <span className="sr-only">User Menu</span>
-                    </Button>
+                  <DropdownMenuTrigger 
+                    className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "rounded-full")}
+                    aria-label="User Menu"
+                  >
+                    <UserCircle className="h-6 w-6" suppressHydrationWarning />
+                    <span className="sr-only">User Menu</span>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
