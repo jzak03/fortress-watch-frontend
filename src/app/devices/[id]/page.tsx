@@ -3,8 +3,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, notFound, useSearchParams } from 'next/navigation';
-import { fetchDeviceById, triggerScan, callSuggestRemediationSteps, callEnhanceScanWithAi, callSummarizeScanFindings } from '@/lib/api';
-import type { Device, Scan, ScanType, Vulnerability, ScanResult, AISuggestion, AIEnhancement, AISummary } from '@/types';
+import { fetchDeviceById, triggerScan, callSuggestRemediationSteps } from '@/lib/api';
+import type { Device, Scan, ScanType, Vulnerability, ScanResult, AISuggestion, AIEnhancement, AISummary, ScanStatus } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,9 +39,9 @@ const getDeviceIcon = (brand?: string) => {
 const severityBadgeVariant = (severity: Vulnerability['severity'] | ScanResult['severity']): 'destructive' | 'default' | 'secondary' | 'outline' => {
   switch (severity) {
     case 'critical': return 'destructive';
-    case 'high': return 'default'; // Using default as a stand-in for a custom orange/red often not in themes
-    case 'medium': return 'secondary'; // Using secondary as a stand-in for yellow
-    case 'low': return 'outline'; // Using outline for a less prominent look
+    case 'high': return 'default'; 
+    case 'medium': return 'secondary'; 
+    case 'low': return 'outline'; 
     default: return 'outline';
   }
 };
@@ -75,32 +75,30 @@ export default function DeviceDetailsPage() {
           const data = await fetchDeviceById(id);
           if (data) {
             setDevice(data);
-            const deviceScans = (data as any).scans || [];
-            setRelatedScans(deviceScans);
+            const deviceScans = (data as any).scans || []; // Scans are attached in fetchDeviceById
+            setRelatedScans(deviceScans.sort((a: Scan, b: Scan) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
 
             const scanIdFromQuery = searchParams.get('scanId');
             if (scanIdFromQuery && deviceScans.length > 0) {
-              const scanToDisplay = deviceScans.find((s: Scan) => s.id === scanIdFromQuery && s.status === 'completed');
-              if (scanToDisplay) {
+              const scanToDisplay = deviceScans.find((s: Scan) => s.id === scanIdFromQuery);
+              if (scanToDisplay && scanToDisplay.status === 'completed') { // Only display details for completed scans from query
                 setCurrentScan(scanToDisplay);
-                // If this scan had AI analysis data (mocked for now), set it.
                 if (scanToDisplay.aiAnalysis) {
                   setAiEnhancement(scanToDisplay.aiAnalysis);
                 }
-                if (scanToDisplay.summary && scanToDisplay.scanType === 'ai' && scanToDisplay.aiAnalysis?.confidenceScore) { // Crude check for AI summary
+                if (scanToDisplay.summary && (scanToDisplay.scanType === 'ai' || scanToDisplay.scanType === 'web' || scanToDisplay.aiAnalysis)) {
                     setAiSummary({
                         summary: scanToDisplay.summary,
-                        keyInsights: scanToDisplay.aiAnalysis.prioritizedRecommendations, // Or derive from summary
-                        confidenceScore: scanToDisplay.aiAnalysis.confidenceScore,
-                    });
-                } else if (scanToDisplay.summary && (scanToDisplay.scanType === 'web' || scanToDisplay.scanType === 'ai')) {
-                    setAiSummary({
-                        summary: scanToDisplay.summary,
-                        keyInsights: "Review scan results for details.", // Placeholder
-                        confidenceScore: 0.75, // Mock confidence
+                        keyInsights: scanToDisplay.aiAnalysis?.prioritizedRecommendations || "Refer to scan results for details.",
+                        confidenceScore: scanToDisplay.aiAnalysis?.confidenceScore || 0.70, // Default confidence if not present
                     });
                 }
-
+              } else if (scanToDisplay) {
+                // If scan from query is not completed, we can still set it to show its status (e.g. in_progress)
+                // but results section might be empty or show 'in progress'.
+                // For now, we are focusing on completed scans for detailed view from history.
+                // You could add logic here to show basic info for non-completed scans from URL too.
+                console.log("Scan from URL is not completed, not setting as current detailed scan:", scanToDisplay);
               }
             }
           } else {
@@ -109,7 +107,6 @@ export default function DeviceDetailsPage() {
         } catch (error) {
           console.error("Failed to fetch device details:", error);
           toast({ title: "Error", description: "Could not load device details.", variant: "destructive" });
-          // notFound(); // or show an error message on page
         } finally {
           setLoading(false);
         }
@@ -122,14 +119,14 @@ export default function DeviceDetailsPage() {
     if (!device) return;
     setIsScanning(true);
     setScanLog([`Initializing ${scanType} scan...`]);
-    setCurrentScan(null); // Clear any previously displayed scan (historical or new)
+    setCurrentScan(null); 
     setAiEnhancement(null);
     setAiSummary(null);
     setScanProgress(10);
 
     try {
       const scanJob = await triggerScan(device.id, scanType);
-      setCurrentScan(scanJob); // Initially set to pending/in_progress scan
+      setCurrentScan(scanJob); 
       setScanLog(prev => [...prev, `Scan ${scanJob.id} started with status: ${scanJob.status}`]);
       setScanProgress(30);
 
@@ -140,51 +137,50 @@ export default function DeviceDetailsPage() {
         });
       }, 1000);
 
-
+      // Simulate waiting for scan completion. In real app, this would be a poll or webhook.
+      // The triggerScan mock in api.ts already simulates this background update.
+      // We need to re-fetch the device or scan list after a delay to get updated scan.
       setTimeout(async () => {
         clearInterval(progressInterval);
         setScanProgress(100);
         
-        // Fetch updated scan details (mocked here by modifying currentScan)
-        // In a real app, you might poll a getScanStatus(scanJob.id) endpoint
-        const completedScan = mockScans.find(s => s.id === scanJob.id && s.status === 'completed'); // Find the completed mock scan
-        
-        if (completedScan) {
-            setCurrentScan(completedScan); // Set to the fully completed scan object from mockScans
-            setRelatedScans(prev => [completedScan, ...prev.filter(s => s.id !== completedScan.id)]);
-            setScanLog(prev => [...prev, `Scan ${completedScan.id} completed.`]);
+        // Re-fetch device to get the latest scans list which should include the completed scan
+        const updatedDeviceData = await fetchDeviceById(id);
+        if (updatedDeviceData) {
+            const updatedDeviceScans = (updatedDeviceData as any).scans || [];
+            setRelatedScans(updatedDeviceScans.sort((a: Scan, b: Scan) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+            const completedScan = updatedDeviceScans.find((s:Scan) => s.id === scanJob.id && s.status === 'completed');
+            
+            if (completedScan) {
+                setCurrentScan(completedScan);
+                setScanLog(prev => [...prev, `Scan ${completedScan.id} completed.`]);
 
-            // If AI analysis was part of the mock completed scan data, display it
-            if (completedScan.aiAnalysis) {
-                setAiEnhancement(completedScan.aiAnalysis);
-                setScanLog(prev => [...prev, `AI Enhancement generated with confidence: ${completedScan.aiAnalysis.confidenceScore.toFixed(2)}`]);
+                if (completedScan.aiAnalysis) {
+                    setAiEnhancement(completedScan.aiAnalysis);
+                    setScanLog(prev => [...prev, `AI Enhancement generated with confidence: ${completedScan.aiAnalysis.confidenceScore.toFixed(2)}`]);
+                }
+                if (completedScan.summary && (completedScan.scanType === 'ai' || completedScan.scanType === 'web' || completedScan.aiAnalysis)) {
+                    setAiSummary({
+                        summary: completedScan.summary,
+                        keyInsights: completedScan.aiAnalysis?.prioritizedRecommendations || "Refer to scan results for key insights.",
+                        confidenceScore: completedScan.aiAnalysis?.confidenceScore || 0.7 
+                    });
+                    setScanLog(prev => [...prev, `AI Summary available.`]);
+                }
+            } else {
+                 const fallbackCompletedScan = { 
+                    ...scanJob, 
+                    status: 'completed' as ScanStatus, 
+                    results: [{ id: 'res1', scanId: scanJob.id, finding: 'Mock Finding Fallback', severity: 'medium', status: 'open', createdAt: new Date().toISOString() }] as ScanResult[],
+                    vulnerabilitiesFound: 1,
+                    completedAt: new Date().toISOString(),
+                    summary: "Scan completed (fallback after re-fetch)."
+                };
+                setCurrentScan(fallbackCompletedScan);
+                setRelatedScans(prev => [fallbackCompletedScan, ...prev.filter(s => s.id !== fallbackCompletedScan.id)].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+                setScanLog(prev => [...prev, `Scan ${fallbackCompletedScan.id} completed (fallback).`]);
             }
-            if (completedScan.summary && (completedScan.scanType === 'ai' || completedScan.scanType === 'web')) {
-                 // Attempt to reconstruct AISummary if possible from completedScan data
-                 // This is a bit of a hack due to mock data structure
-                setAiSummary({
-                    summary: completedScan.summary,
-                    keyInsights: completedScan.aiAnalysis?.prioritizedRecommendations || "Refer to scan results for key insights.",
-                    confidenceScore: completedScan.aiAnalysis?.confidenceScore || 0.7 // Mock confidence if not present
-                });
-                setScanLog(prev => [...prev, `AI Summary available.`]);
-            }
-
-        } else {
-             // Fallback if the mock scan wasn't updated properly in the background
-            const fallbackCompletedScan = { 
-                ...scanJob, 
-                status: 'completed' as Scan['status'], 
-                results: [{ id: 'res1', scanId: scanJob.id, finding: 'Mock Finding Fallback', severity: 'medium', status: 'open', createdAt: new Date().toISOString() }] as ScanResult[],
-                vulnerabilitiesFound: 1,
-                completedAt: new Date().toISOString(),
-                summary: "Scan completed (fallback)."
-            };
-            setCurrentScan(fallbackCompletedScan);
-            setRelatedScans(prev => [fallbackCompletedScan, ...prev.filter(s => s.id !== fallbackCompletedScan.id)]);
-            setScanLog(prev => [...prev, `Scan ${fallbackCompletedScan.id} completed (fallback).`]);
         }
-        
         setIsScanning(false);
       }, 5000); 
 
@@ -209,7 +205,7 @@ export default function DeviceDetailsPage() {
   };
 
 
-  if (loading && !device) { // Ensure skeleton shows if device is null during initial load
+  if (loading && !device) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-10 w-3/4" />
@@ -401,52 +397,3 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
-
-// Added for mock data consistency
-const mockScans: Scan[] = Array.from({ length: 120 }, (_, i) => {
-  const deviceId = `device-fw-${(i % 55) + 1}`; // Match existing device IDs
-  const scanType = (['full', 'local', 'web', 'ai'] as ScanType[])[i % 4];
-  const statusOptions: ScanStatus[] = ['completed', 'in_progress', 'failed', 'pending'];
-  const status = statusOptions[i % statusOptions.length];
-  
-  let results: ScanResult[] = [];
-  if (status === 'completed') {
-    results = Array.from({ length: Math.floor(Math.random() * 3) + 1 }, (__, k) => ({
-        id: `scanresult-fw-hist-${i}-${k}`,
-        scanId: `scan-fw-hist-${i + 1}`,
-        finding: `Mock Historical Finding ${k+1} for scan ${i+1}`,
-        severity: (['critical', 'high', 'medium', 'low'] as const)[k%4],
-        status: (['open', 'closed'] as const)[k%2],
-        createdAt: new Date().toISOString(),
-    }));
-  }
-
-  let aiAnalysisData;
-  let summaryText;
-  if (status === 'completed' && (scanType === 'ai' || scanType === 'web')) {
-    aiAnalysisData = {
-        executiveSummary: `Mock AI Exec Summary for scan ${i+1}. Type: ${scanType}. Lorem ipsum dolor sit amet.`,
-        prioritizedRecommendations: `1. Mock Rec 1 for ${scanType}\n2. Mock Rec 2 for ${scanType}`,
-        confidenceScore: Math.random() * 0.3 + 0.65, // 0.65 - 0.95
-    };
-    summaryText = `AI Summary: ${results.filter(r => r.status === 'open').length} open findings. ${aiAnalysisData.executiveSummary.substring(0,50)}...`;
-  } else if (status === 'completed') {
-    summaryText = `Scan found ${results.filter(r => r.status === 'open').length} open issues.`;
-  }
-
-
-  return {
-    id: `scan-fw-hist-${i + 1}`,
-    deviceId: deviceId,
-    deviceName: `Device FW-${(i % 55) + 1}`, 
-    scanType,
-    status,
-    startedAt: status !== 'pending' ? new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toISOString() : undefined,
-    completedAt: status === 'completed' || status === 'failed' ? new Date(Date.now() - Math.random() * 1000 * 60 * 60 * (24 * 3 - 1)).toISOString() : undefined, // Ensure completed is before now
-    summary: summaryText,
-    aiAnalysis: aiAnalysisData,
-    results,
-    vulnerabilitiesFound: results.filter(r => r.status === 'open').length,
-    createdAt: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 10).toISOString(),
-  };
-}).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
