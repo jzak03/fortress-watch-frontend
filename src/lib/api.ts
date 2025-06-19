@@ -1,4 +1,5 @@
 
+
 import type {
   Device,
   Scan,
@@ -12,7 +13,9 @@ import type {
   DeviceFilters,
   ScanHistoryFilters,
   ScanType,
-  ScanStatus
+  ScanStatus,
+  CustomReportParams,
+  CustomReportResponse
 } from '@/types';
 import { suggestRemediationSteps } from '@/ai/flows/suggest-remediation-steps';
 import { enhanceScanWithAi } from '@/ai/flows/enhance-scan-with-ai-analysis';
@@ -341,8 +344,52 @@ export const callSummarizeScanFindings = async (scanData: string): Promise<AISum
   }
 };
 
+export const generateCustomReport = async (params: CustomReportParams): Promise<CustomReportResponse> => {
+  console.log('API: Generating custom report with params:', params);
+  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY + 2000)); // Simulate report generation time
+
+  // Simulate different outcomes
+  const random = Math.random();
+  if (random < 0.1) {
+    return {
+      report_id: `report-fw-${Date.now()}`,
+      status: 'failed',
+      message: 'Report generation failed due to an unexpected error.',
+      generated_at: new Date().toISOString(),
+    };
+  }
+
+  return {
+    report_id: `report-fw-${Date.now()}`,
+    status: 'completed',
+    message: `Custom report '${params.report_type}' generated successfully.`,
+    data: { 
+      // Mock data - in a real scenario, this might be a URL to a PDF/CSV or structured data
+      details: `This is a mock ${params.format.toUpperCase()} report of type '${params.report_type}'.`,
+      filtersApplied: params.filters,
+      trendsIncluded: params.include_trends,
+      downloadLink: `/mock-reports/report-${Date.now()}.${params.format}`
+    },
+    generated_at: new Date().toISOString(),
+  };
+};
+
+
 export const getScanTypes = (): ScanType[] => ['full', 'local', 'web', 'ai'];
 export const getScanStatuses = (): (ScanStatus | 'all')[] => ['all', 'pending', 'in_progress', 'completed', 'failed', 'cancelled'];
 export const getDeviceBrands = (): string[] => ['all', ...new Set(mockDevices.map(d => d.brand))];
 export const getDeviceLocations = (): string[] => ['all', ...new Set(mockDevices.map(d => d.location))];
+
+export const getReportFormats = (): Array<{value: CustomReportParams['format'], label: string}> => [
+    { value: 'pdf', label: 'PDF' },
+    { value: 'csv', label: 'CSV' },
+];
+
+export const getSeverityLevels = (): Array<{id: CustomReportFilters['severity_levels'][number], label: string}> => [
+    { id: 'critical', label: 'Critical' },
+    { id: 'high', label: 'High' },
+    { id: 'medium', label: 'Medium' },
+    { id: 'low', label: 'Low' },
+    { id: 'informational', label: 'Informational' },
+];
 

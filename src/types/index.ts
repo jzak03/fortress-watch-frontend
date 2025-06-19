@@ -1,4 +1,5 @@
 
+
 export interface PaginatedResponse<T> {
   data: T[];
   currentPage: number;
@@ -118,4 +119,32 @@ export interface ScanHistoryFilters {
   scanType?: ScanType | string; // string for 'all' option
   page?: number;
   limit?: number;
+}
+
+// Custom Report Types
+export type ReportSeverityLevel = 'critical' | 'high' | 'medium' | 'low' | 'informational';
+export type ReportFormat = 'pdf' | 'csv';
+
+export interface CustomReportFilters {
+  device_brands?: string[];
+  severity_levels?: ReportSeverityLevel[];
+  date_range?: {
+    start?: string; // ISO Date string
+    end?: string; // ISO Date string
+  };
+}
+
+export interface CustomReportParams {
+  report_type: string;
+  filters: CustomReportFilters;
+  include_trends: boolean;
+  format: ReportFormat;
+}
+
+export interface CustomReportResponse {
+  report_id: string;
+  status: string; // e.g., "queued", "generating", "completed", "failed"
+  message?: string;
+  data?: any; // Could be a URL to the report or embedded data for small reports
+  generated_at: string; // ISO date string
 }

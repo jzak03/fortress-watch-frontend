@@ -1,4 +1,5 @@
-import { LayoutDashboard, List, History, ScanSearch, type LucideIcon } from 'lucide-react';
+
+import { LayoutDashboard, List, History, ScanSearch, FileText, type LucideIcon } from 'lucide-react';
 
 interface NavLink {
   href: string;
@@ -27,4 +28,10 @@ export const NavLinks: NavLink[] = [
     label: 'Bulk Scan',
     icon: ScanSearch,
   },
+  {
+    href: '/reports',
+    label: 'Reports',
+    icon: FileText,
+  },
 ];
+
