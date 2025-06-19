@@ -50,12 +50,12 @@ export default function RootLayout({
               <SidebarMenu>
                 {NavLinks.map((item) => (
                   <SidebarMenuItem key={item.href}>
-                    <Link href={item.href} legacyBehavior passHref>
-                      <SidebarMenuButton tooltip={item.label} /* Pass pathname for active state */ >
+                    <SidebarMenuButton asChild tooltip={item.label} /* Pass pathname for active state */ >
+                      <Link href={item.href}>
                         <item.icon />
                         <span>{item.label}</span>
-                      </SidebarMenuButton>
-                    </Link>
+                      </Link>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
@@ -63,12 +63,12 @@ export default function RootLayout({
             <SidebarFooter className="p-4">
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <Link href="/settings" legacyBehavior passHref>
-                    <SidebarMenuButton tooltip="Settings">
+                  <SidebarMenuButton asChild tooltip="Settings">
+                    <Link href="/settings">
                       <Settings2 />
                       <span>Settings</span>
-                    </SidebarMenuButton>
-                  </Link>
+                    </Link>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
                  <SidebarMenuItem>
                     <SidebarMenuButton tooltip="Logout">
