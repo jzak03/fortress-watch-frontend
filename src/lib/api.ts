@@ -15,7 +15,9 @@ import type {
   ScanType,
   ScanStatus,
   CustomReportParams,
-  CustomReportResponse
+  CustomReportResponse,
+  CustomReportData,
+  ReportSeverityLevel
 } from '@/types';
 import { suggestRemediationSteps } from '@/ai/flows/suggest-remediation-steps';
 import { enhanceScanWithAi } from '@/ai/flows/enhance-scan-with-ai-analysis';
@@ -305,6 +307,13 @@ export const fetchOrganizationSummary = async (): Promise<OrganizationSummary> =
 export const callSuggestRemediationSteps = async (vulnerabilityDescription: string, deviceInformation: string): Promise<AISuggestion> => {
   console.log(`API: Calling AI for remediation steps for '${vulnerabilityDescription}' on '${deviceInformation}'`);
   try {
+    // Simulate AI response for specific vulnerabilities if needed for consistency
+    if (vulnerabilityDescription.toLowerCase().includes('cisco ios xe web ui auth bypass')) {
+        return {
+            remediationSteps: `**Immediate Actions:**\n1. **Restrict access** to the web UI from untrusted networks and the internet.\n2. **Apply vendor patches** immediately. Refer to Cisco Security Advisory cisco-sa-iosxe-auth-bypass-kLgg5N3.\n\n**Verification:**\n- Confirm patch application via CLI command 'show version'.\n- Test web UI access controls rigorously.\n\n**Considerations:**\n- If patching is delayed, disable the HTTP Server feature on affected systems using 'no ip http server' or 'no ip http secure-server' in global configuration mode. This will impact web UI access.`,
+            confidenceScore: 0.95
+        };
+    }
     return await suggestRemediationSteps({ vulnerabilityDescription, deviceInformation });
   } catch (error) {
     console.error("Error in callSuggestRemediationSteps:", error);
@@ -358,18 +367,23 @@ export const generateCustomReport = async (params: CustomReportParams): Promise<
       generated_at: new Date().toISOString(),
     };
   }
+  
+  const responseData: CustomReportData = {
+    details: `This is a mock ${params.format.toUpperCase()} report of type '${params.report_type}'.`,
+    filtersApplied: params.filters,
+    trendsIncluded: params.include_trends,
+    downloadLink: `/mock-reports/report-${Date.now()}.${params.format}`,
+  };
+
+  if (params.include_trends) {
+    responseData.trendSummary = "Overall vulnerability count decreased by 15% compared to the previous period. New critical vulnerabilities: 2, Resolved critical vulnerabilities: 5.";
+  }
 
   return {
     report_id: `report-fw-${Date.now()}`,
     status: 'completed',
     message: `Custom report '${params.report_type}' generated successfully.`,
-    data: { 
-      // Mock data - in a real scenario, this might be a URL to a PDF/CSV or structured data
-      details: `This is a mock ${params.format.toUpperCase()} report of type '${params.report_type}'.`,
-      filtersApplied: params.filters,
-      trendsIncluded: params.include_trends,
-      downloadLink: `/mock-reports/report-${Date.now()}.${params.format}`
-    },
+    data: responseData,
     generated_at: new Date().toISOString(),
   };
 };
@@ -385,11 +399,12 @@ export const getReportFormats = (): Array<{value: CustomReportParams['format'], 
     { value: 'csv', label: 'CSV' },
 ];
 
-export const getSeverityLevels = (): Array<{id: CustomReportFilters['severity_levels'][number], label: string}> => [
+export const getSeverityLevels = (): Array<{id: ReportSeverityLevel, label: string}> => [
     { id: 'critical', label: 'Critical' },
     { id: 'high', label: 'High' },
     { id: 'medium', label: 'Medium' },
     { id: 'low', label: 'Low' },
     { id: 'informational', label: 'Informational' },
 ];
+
 

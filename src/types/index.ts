@@ -141,10 +141,19 @@ export interface CustomReportParams {
   format: ReportFormat;
 }
 
+export interface CustomReportData {
+  downloadLink?: string;
+  details?: any;
+  filtersApplied?: CustomReportFilters;
+  trendsIncluded?: boolean;
+  trendSummary?: string; 
+}
+
 export interface CustomReportResponse {
   report_id: string;
   status: string; // e.g., "queued", "generating", "completed", "failed"
   message?: string;
-  data?: any; // Could be a URL to the report or embedded data for small reports
+  data?: CustomReportData;
   generated_at: string; // ISO date string
 }
+

@@ -172,7 +172,14 @@ Response after requesting a custom report.
   "message": "string (optional)",
   "data": { // Optional, present if status is 'completed'
     "downloadLink": "string (url to download the report, optional)",
-    "details": "any (report-specific data, optional)"
+    "details": "any (report-specific data, optional)",
+    "filtersApplied": { 
+      "device_brands": ["string"],
+      "severity_levels": ["string"],
+      "date_range": { "start": "string", "end": "string" }
+     },
+    "trendsIncluded": "boolean",
+    "trendSummary": "string (Textual summary of trends, present if trendsIncluded is true, e.g., 'Overall vulnerability count decreased by 15% ...')"
   },
   "generated_at": "string (ISO 8601 datetime)"
 }
@@ -392,3 +399,4 @@ These endpoints are typically invoked as Server Actions in a Next.js application
     ```
 
 ---
+

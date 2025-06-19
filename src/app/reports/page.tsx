@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState } from 'react';
@@ -353,6 +354,12 @@ export default function CustomReportsPage() {
                     Download your report: <a href={reportResult.data.downloadLink} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">{reportResult.data.downloadLink.split('/').pop()}</a>
                   </p>
                 )}
+                {reportResult.data?.trendsIncluded && reportResult.data?.trendSummary && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <h4 className="font-semibold text-sm">Trend Analysis:</h4>
+                    <p className="text-sm text-muted-foreground">{reportResult.data.trendSummary}</p>
+                  </div>
+                )}
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -361,3 +368,4 @@ export default function CustomReportsPage() {
     </div>
   );
 }
+
