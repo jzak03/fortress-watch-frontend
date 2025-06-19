@@ -1,7 +1,7 @@
 
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Shield, LayoutDashboard, List, History, ScanSearch, Settings2, LogOut, UserCircle, Search, Bell } from 'lucide-react';
+import { Shield, LayoutDashboard, List, History, ScanSearch, Settings2, LogOut, UserCircle, Search, Bell, FileText, PanelLeft } from 'lucide-react';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import {
@@ -43,7 +43,7 @@ export default function RootLayout({
           <Sidebar>
             <SidebarHeader className="p-4">
               <Link href="/dashboard" className="flex items-center gap-2 text-xl font-semibold text-sidebar-foreground">
-                <Shield className="h-7 w-7 text-primary" />
+                <Shield className="h-7 w-7 text-primary" suppressHydrationWarning />
                 <span className="group-data-[collapsible=icon]:hidden">Fortress Watch</span>
               </Link>
             </SidebarHeader>
