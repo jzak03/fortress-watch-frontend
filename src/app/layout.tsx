@@ -42,7 +42,7 @@ export default function RootLayout({
         <SidebarProvider defaultOpen>
           <Sidebar>
             <SidebarHeader className="p-4">
-              <Link href="/dashboard" className="flex items-center gap-2 text-xl font-semibold text-sidebar-foreground">
+              <Link href="/dashboard" legacyBehavior={false} className="flex items-center gap-2 text-xl font-semibold text-sidebar-foreground">
                 <Shield className="h-7 w-7 text-primary" />
                 <span className="group-data-[collapsible=icon]:hidden">Fortress Watch</span>
               </Link>
@@ -51,8 +51,8 @@ export default function RootLayout({
               <SidebarMenu>
                 {NavLinks.map((item) => (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild tooltip={item.label} /* Pass pathname for active state */ >
-                      <Link href={item.href}>
+                    <SidebarMenuButton asChild tooltip={item.label}>
+                      <Link href={item.href} legacyBehavior={false}>
                         <item.icon />
                         <span>{item.label}</span>
                       </Link>
@@ -65,7 +65,7 @@ export default function RootLayout({
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Settings">
-                    <Link href="/settings">
+                    <Link href="/settings" legacyBehavior={false}>
                       <Settings2 />
                       <span>Settings</span>
                     </Link>
