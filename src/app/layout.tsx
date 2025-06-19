@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Shield, LayoutDashboard, List, History, ScanSearch, Settings2, LogOut, UserCircle, Search, Bell } from 'lucide-react';
