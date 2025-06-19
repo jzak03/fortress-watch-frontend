@@ -136,7 +136,7 @@ Summary data for the organization's security posture.
     { "date": "string (YYYY-MM-DD)", "count": "number" }
   ],
   "vulnerabilitySeverityDistribution": [
-    { "severity": "string", "count": "number" }
+    { "severity": "string ('critical' | 'high' | 'medium' | 'low' | 'informational')", "count": "number" }
   ]
 }
 ```
@@ -333,8 +333,24 @@ A generic wrapper for paginated list responses.
 ## 5. Report Endpoints
 
 ### `GET /reports/organization/summary`
-- **Purpose**: Get an organization-wide summary.
+- **Purpose**: Get an organization-wide summary, typically used to populate the main dashboard.
 - **Response**: `200 OK` - `OrganizationSummary`
+- **Dashboard Usage**:
+    - **Key Statistic Cards**:
+        - `totalDevices`: Used for the "Total Devices" card's main value.
+        - `activeDevices`: Used in the description of the "Total Devices" card.
+        - `devicesWithCriticalVulnerabilities`: Used for the "Critical Vulnerabilities" card.
+        - `totalVulnerabilities`: Used for the "Total Open Vulnerabilities" card.
+        - `recentScansCount`: Used for the "Recent Scans (7d)" card.
+        - `averageTimeToRemediate`: Used in the description of the "Recent Scans (7d)" card.
+    - **Scan Activity Chart (Line Chart)**:
+        - Uses the `scanActivity` array. Each object in this array contains:
+            - `date`: string (YYYY-MM-DD) - The date of the scan activity.
+            - `count`: number - The number of scans performed on that date.
+    - **Vulnerability Severity Distribution Chart (Pie Chart)**:
+        - Uses the `vulnerabilitySeverityDistribution` array. Each object in this array contains:
+            - `severity`: string ('critical' | 'high' | 'medium' | 'low' | 'informational') - The severity level.
+            - `count`: number - The count of open vulnerabilities for that severity level.
 
 ### `POST /reports/custom`
 - **Purpose**: Generate a custom report.
