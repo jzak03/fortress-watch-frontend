@@ -703,4 +703,3 @@ Endpoints related to user security and audit trails.
 - **Response**: `200 OK` - `PaginatedResponse<ActivityLogEntry>`
 
 ---
-
