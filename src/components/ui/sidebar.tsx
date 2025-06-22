@@ -157,6 +157,33 @@ const SidebarProvider = React.forwardRef<
 )
 SidebarProvider.displayName = "SidebarProvider"
 
+const SidebarSkeleton = () => (
+    <div className="hidden h-svh w-[--sidebar-width] flex-col bg-sidebar p-2 text-sidebar-foreground md:flex">
+        <div className="flex flex-col gap-2 p-2">
+            <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="flex flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden p-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex h-8 items-center gap-2 rounded-md px-2">
+                    <Skeleton className="size-4 rounded-full" />
+                    <Skeleton className="h-4 flex-1" />
+                </div>
+            ))}
+        </div>
+        <div className="mt-auto flex flex-col gap-2 p-2">
+            <div className="flex h-8 items-center gap-2 rounded-md px-2">
+                 <Skeleton className="size-4 rounded-full" />
+                 <Skeleton className="h-4 flex-1" />
+            </div>
+             <div className="flex h-8 items-center gap-2 rounded-md px-2">
+                 <Skeleton className="size-4 rounded-full" />
+                 <Skeleton className="h-4 flex-1" />
+            </div>
+        </div>
+    </div>
+);
+
+
 const Sidebar = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
@@ -177,6 +204,15 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const [isMounted, setIsMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    if (!isMounted) {
+        return <SidebarSkeleton />;
+    }
 
     if (collapsible === "none") {
       return (
