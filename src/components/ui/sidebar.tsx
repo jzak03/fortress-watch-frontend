@@ -159,24 +159,6 @@ const SidebarProvider = React.forwardRef<
 SidebarProvider.displayName = "SidebarProvider"
 
 
-const SidebarSkeleton = () => (
-    <div className="hidden h-svh w-[var(--sidebar-width-icon)] flex-col border-r bg-sidebar p-2 md:flex">
-      <SidebarHeader>
-        <Skeleton className="h-10 w-full" />
-      </SidebarHeader>
-      <SidebarContent className="flex flex-col gap-2">
-        {[...Array(5)].map((_, i) => (
-          <SidebarMenuSkeleton key={i} showIcon />
-        ))}
-      </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenuSkeleton showIcon />
-        <SidebarMenuSkeleton showIcon />
-      </SidebarFooter>
-    </div>
-);
-
-
 const Sidebar = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
@@ -197,11 +179,6 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
-    
-    if (isMobile === undefined) {
-       if (collapsible === "none") return null;
-       return <SidebarSkeleton />;
-    }
 
     if (isMobile) {
       return (
@@ -236,7 +213,7 @@ const Sidebar = React.forwardRef<
         {/* This is what handles the sidebar gap on desktop */}
         <div
           className={cn(
-            "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear",
+            "duration-200 relative h-svh w-[var(--sidebar-width)] bg-transparent transition-[width] ease-linear",
             "group-data-[collapsible=offcanvas]:w-0",
             "group-data-[side=right]:rotate-180",
             variant === "floating" || variant === "inset"
