@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,24 +10,21 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { User, Bell, Shield, Palette, KeyRound } from 'lucide-react';
+import { ThemeToggle } from '@/components/settings/ThemeToggle';
 
 export default function SettingsPage() {
-  const [userSettings, setUserSettings] = useState({
-    name: 'Demo User',
-    email: 'demo@example.com',
+  const [notificationSettings, setNotificationSettings] = useState({
     emailNotifications: true,
     pushNotifications: false,
   });
 
-  const handleSwitchChange = (field: keyof typeof userSettings) => (checked: boolean) => {
-    setUserSettings(prev => ({ ...prev, [field]: checked }));
+  const handleSwitchChange = (field: keyof typeof notificationSettings) => (checked: boolean) => {
+    setNotificationSettings(prev => ({ ...prev, [field]: checked }));
   };
   
-  // Placeholder for save functionality
   const handleSaveChanges = () => {
-    console.log("Saving settings:", userSettings);
+    console.log("Saving settings:", notificationSettings);
     // Here you would typically call an API to save the settings
-    // For now, we'll just log to console.
   };
 
   return (
@@ -45,34 +42,11 @@ export default function SettingsPage() {
         <TabsContent value="general" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>Update your personal details.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" defaultValue={userSettings.name} placeholder="Your Name" />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue={userSettings.email} placeholder="your@email.com" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
               <CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5 text-primary"/>Theme Preferences</CardTitle>
               <CardDescription>Customize the look and feel of the application.</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Theme customization options will be available here. (e.g., Light/Dark mode toggle)</p>
-              {/* Example:
-              <div className="flex items-center space-x-2 mt-2">
-                <Switch id="dark-mode" />
-                <Label htmlFor="dark-mode">Dark Mode</Label>
-              </div>
-              */}
+              <ThemeToggle />
             </CardContent>
           </Card>
         </TabsContent>
@@ -91,7 +65,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   id="emailNotifications"
-                  checked={userSettings.emailNotifications}
+                  checked={notificationSettings.emailNotifications}
                   onCheckedChange={handleSwitchChange('emailNotifications')}
                 />
               </div>
@@ -102,7 +76,7 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   id="pushNotifications"
-                  checked={userSettings.pushNotifications}
+                  checked={notificationSettings.pushNotifications}
                   onCheckedChange={handleSwitchChange('pushNotifications')}
                 />
               </div>
