@@ -1,7 +1,7 @@
 
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Shield, LayoutDashboard, List, History, ScanSearch, Settings2, LogOut, UserCircle, Search, Bell, FileText, PanelLeft } from 'lucide-react';
+import { Shield, LayoutDashboard, List, History, ScanSearch, Settings2, LogOut, CircleUser, Search, Bell, FileText, PanelLeft } from 'lucide-react';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import {
@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils'; // Added cn
 export const metadata: Metadata = {
   title: 'Vulntrack',
   description: 'Comprehensive Vulnerability Management Platform',
+  icons: null,
 };
 
 export default function RootLayout({
@@ -134,7 +135,7 @@ export default function RootLayout({
                     className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "rounded-full")}
                     aria-label="User Menu"
                   >
-                    <UserCircle className="h-6 w-6" suppressHydrationWarning />
+                    <CircleUser className="h-6 w-6" suppressHydrationWarning />
                     <span className="sr-only">User Menu</span>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
