@@ -1,5 +1,4 @@
-# **App Name**: Fortress Watch
-
+# **App Name**: Vulntrack
 ## Core Features:
 
 - Device List: Display paginated list of devices with filters for name, brand, model, version, location, and active status, using the `GET /api/v1/devices/` endpoint.

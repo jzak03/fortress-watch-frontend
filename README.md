@@ -1,6 +1,6 @@
-# Fortress Watch
+# Vulntrack
 
-Fortress Watch is a comprehensive Vulnerability Management Platform. It helps manage device versions and detect vulnerable firmware.
+Vulntrack is a comprehensive Vulnerability Management Platform. It helps manage device versions and detect vulnerable firmware.
 
 This application is built with NextJS, React, ShadCN UI, Tailwind CSS, and Genkit for AI features.
 

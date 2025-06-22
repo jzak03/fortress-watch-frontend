@@ -23,7 +23,7 @@ import { NavLinks } from '@/config/nav';
 import { cn } from '@/lib/utils'; // Added cn
 
 export const metadata: Metadata = {
-  title: 'Fortress Watch',
+  title: 'Vulntrack',
   description: 'Comprehensive Vulnerability Management Platform',
 };
 
@@ -45,7 +45,7 @@ export default function RootLayout({
             <SidebarHeader className="p-4">
               <Link href="/dashboard" className="flex items-center gap-2 text-xl font-semibold text-sidebar-foreground">
                 <Shield className="h-7 w-7 text-primary" suppressHydrationWarning />
-                <span className="group-data-[collapsible=icon]:hidden">Fortress Watch</span>
+                <span className="group-data-[collapsible=icon]:hidden">Vulntrack</span>
               </Link>
             </SidebarHeader>
             <SidebarContent>

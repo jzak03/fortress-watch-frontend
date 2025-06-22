@@ -32,7 +32,7 @@ export default function ProfilePage() {
     // Mock data fetching
     const mockUser: UserProfile = {
       name: "Admin User",
-      email: "admin@fortresswatch.com",
+      email: "admin@vulntrack.com",
       role: "Administrator",
       joinedDate: "2023-01-15T10:00:00Z",
       avatarUrl: "https://placehold.co/128x128.png",

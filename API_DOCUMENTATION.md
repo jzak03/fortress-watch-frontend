@@ -1,7 +1,7 @@
 
-# Fortress Watch API Documentation
+# Vulntrack API Documentation
 
-This document outlines the API endpoints and data schemas for the Fortress Watch application. The base URL for all API endpoints is `/api/v1`.
+This document outlines the API endpoints and data schemas for the Vulntrack application. The base URL for all API endpoints is `/api/v1`.
 
 ## Table of Contents
 
