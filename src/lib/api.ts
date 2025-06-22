@@ -3,6 +3,7 @@
 
 
 
+
 import type {
   Device,
   Scan,
@@ -170,6 +171,40 @@ export const fetchDeviceById = async (id: string): Promise<Device | undefined> =
   return device;
 };
 
+export const createDevice = async (deviceData: Omit<Device, 'id' | 'lastSeen' | 'createdAt' | 'updatedAt' | 'isActive'>): Promise<Device> => {
+  console.log('API: Creating device', deviceData);
+  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
+  const newDevice: Device = {
+    ...deviceData,
+    id: `device-fw-${Date.now()}`,
+    isActive: true, // New devices are active by default
+    lastSeen: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  mockDevices.unshift(newDevice); // Add to the beginning of the list
+  return newDevice;
+};
+
+export const updateDevice = async (id: string, deviceData: Partial<Omit<Device, 'id' | 'createdAt'>>): Promise<Device> => {
+  console.log(`API: Updating device ${id}`, deviceData);
+  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
+  const index = mockDevices.findIndex(d => d.id === id);
+  if (index === -1) throw new Error('Device not found');
+  
+  mockDevices[index] = { ...mockDevices[index], ...deviceData, updatedAt: new Date().toISOString() };
+  return mockDevices[index];
+};
+
+export const deleteDevice = async (id: string): Promise<{ message: string }> => {
+  console.log(`API: Deleting device ${id}`);
+  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
+  const index = mockDevices.findIndex(d => d.id === id);
+  if (index === -1) throw new Error('Device not found');
+  mockDevices.splice(index, 1);
+  return { message: 'Device deleted successfully.' };
+};
+
 export const triggerScan = async (deviceId: string, scanType: ScanType, options?: any): Promise<Scan> => {
   console.log(`API: Triggering ${scanType} scan for device ${deviceId} with options`, options);
   await new Promise(resolve => setTimeout(resolve, MOCK_DELAY + 1000)); // Longer delay for scan trigger
@@ -215,10 +250,14 @@ export const triggerScan = async (deviceId: string, scanType: ScanType, options?
       }
       console.log(`API: Scan ${newScan.id} completed.`);
       // Note: In a real app, you'd update this scan's state in your backend/DB.
+      const deviceIndex = mockDevices.findIndex(d => d.id === newScan.deviceId);
+      if (deviceIndex !== -1) {
+        mockDevices[deviceIndex].lastSeen = new Date().toISOString();
+      }
+      mockScans.unshift(newScan); 
     }, MOCK_DELAY * 3);
   }, MOCK_DELAY * 2);
 
-  mockScans.unshift(newScan); 
   return newScan;
 };
 

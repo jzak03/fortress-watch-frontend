@@ -1,15 +1,19 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { fetchDevices } from '@/lib/api';
+import { fetchDevices, createDevice } from '@/lib/api';
 import type { Device, PaginatedResponse, DeviceFilters as DeviceFiltersType } from '@/types';
 import { DeviceTable } from '@/components/devices/DeviceTable';
 import { DeviceFilters } from '@/components/devices/DeviceFilters';
 import { PaginationControls } from '@/components/common/PaginationControls';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DeviceForm } from '@/components/devices/DeviceForm';
+import * as z from 'zod';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -18,6 +22,9 @@ export default function DevicesPage() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<DeviceFiltersType>({ page: 1, limit: ITEMS_PER_PAGE });
   const { toast } = useToast();
+  
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loadDevices = useCallback(async (currentFilters: DeviceFiltersType) => {
     setLoading(true);
@@ -40,6 +47,25 @@ export default function DevicesPage() {
   useEffect(() => {
     loadDevices(filters);
   }, [filters, loadDevices]);
+  
+  const handleFormSubmit = async (values: any) => {
+      setIsSubmitting(true);
+      try {
+          const deviceData = {
+              ...values,
+              tags: values.tags ? values.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
+          };
+          await createDevice(deviceData);
+          toast({ title: "Success", description: "Device created successfully." });
+          setIsFormOpen(false);
+          loadDevices(filters); // Refresh the list
+      } catch (error) {
+          toast({ title: "Error", description: "Failed to create device.", variant: "destructive" });
+      } finally {
+          setIsSubmitting(false);
+      }
+  };
+
 
   const handlePageChange = (newPage: number) => {
     setFilters(prev => ({ ...prev, page: newPage }));
@@ -57,9 +83,26 @@ export default function DevicesPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Devices</h1>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Device
-        </Button>
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Device
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>Add New Device</DialogTitle>
+                    <DialogDescription>
+                        Fill in the details of the new device to add it to the system.
+                    </DialogDescription>
+                </DialogHeader>
+                <DeviceForm 
+                    onSubmit={handleFormSubmit}
+                    isSubmitting={isSubmitting}
+                    onCancel={() => setIsFormOpen(false)}
+                />
+            </DialogContent>
+        </Dialog>
       </div>
       
       <DeviceFilters filters={filters} onFiltersChange={handleFiltersChange} onResetFilters={handleResetFilters} />

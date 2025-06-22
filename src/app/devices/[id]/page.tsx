@@ -3,13 +3,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, notFound, useSearchParams } from 'next/navigation';
-import { fetchDeviceById, triggerScan, callSuggestRemediationSteps } from '@/lib/api';
+import { fetchDeviceById, triggerScan, callSuggestRemediationSteps, updateDevice } from '@/lib/api';
 import type { Device, Scan, ScanType, Vulnerability, ScanResult, AISuggestion, AIEnhancement, AISummary, ScanStatus } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Laptop, Smartphone, Server, Tablet, ScanLine, AlertTriangle, CheckCircle2, ShieldCheck, Lightbulb, Brain, Globe, Activity, CalendarDays, Tag, ListChecks, BarChartHorizontalBig, Loader2 } from 'lucide-react';
+import { Laptop, Smartphone, Server, Tablet, ScanLine, AlertTriangle, CheckCircle2, ShieldCheck, Lightbulb, Brain, Globe, Activity, CalendarDays, Tag, ListChecks, BarChartHorizontalBig, Loader2, Edit } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -27,6 +27,9 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DeviceForm } from '@/components/devices/DeviceForm';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const getDeviceIcon = (brand?: string) => {
   if (!brand) return Laptop;
@@ -70,51 +73,87 @@ export default function DeviceDetailsPage() {
 
   const [aiEnhancement, setAiEnhancement] = useState<AIEnhancement | null>(null);
   const [aiSummary, setAiSummary] = useState<AISummary | null>(null);
+  
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
 
-  useEffect(() => {
-    if (id) {
-      async function loadDevice() {
-        setLoading(true);
-        try {
-          const data = await fetchDeviceById(id);
-          if (data) {
-            setDevice(data);
-            const deviceScans = (data as any).scans || [];
-            setRelatedScans(deviceScans.sort((a: Scan, b: Scan) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  const loadDevice = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const data = await fetchDeviceById(id);
+      if (data) {
+        setDevice(data);
+        const deviceScans = (data as any).scans || [];
+        setRelatedScans(deviceScans.sort((a: Scan, b: Scan) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
 
-            const scanIdFromQuery = searchParams.get('scanId');
-            if (scanIdFromQuery && deviceScans.length > 0) {
-              const scanToDisplay = deviceScans.find((s: Scan) => s.id === scanIdFromQuery);
-              if (scanToDisplay && scanToDisplay.status === 'completed') {
-                setCurrentScan(scanToDisplay);
-                if (scanToDisplay.aiAnalysis) {
-                  setAiEnhancement(scanToDisplay.aiAnalysis);
-                }
-                if (scanToDisplay.summary && (scanToDisplay.scanType === 'ai' || scanToDisplay.scanType === 'web' || scanToDisplay.aiAnalysis)) {
-                    setAiSummary({
-                        summary: scanToDisplay.summary,
-                        keyInsights: scanToDisplay.aiAnalysis?.prioritizedRecommendations || "Refer to scan results for details.",
-                        confidenceScore: scanToDisplay.aiAnalysis?.confidenceScore || 0.70,
-                    });
-                }
-              } else if (scanToDisplay) {
-                console.log("Scan from URL is not completed, not setting as current detailed scan:", scanToDisplay);
-              }
+        const scanIdFromQuery = searchParams.get('scanId');
+        if (scanIdFromQuery && deviceScans.length > 0) {
+          const scanToDisplay = deviceScans.find((s: Scan) => s.id === scanIdFromQuery);
+          if (scanToDisplay && scanToDisplay.status === 'completed') {
+            setCurrentScan(scanToDisplay);
+            if (scanToDisplay.aiAnalysis) {
+              setAiEnhancement(scanToDisplay.aiAnalysis);
             }
-          } else {
-            notFound();
+            if (scanToDisplay.summary && (scanToDisplay.scanType === 'ai' || scanToDisplay.scanType === 'web' || scanToDisplay.aiAnalysis)) {
+                setAiSummary({
+                    summary: scanToDisplay.summary,
+                    keyInsights: scanToDisplay.aiAnalysis?.prioritizedRecommendations || "Refer to scan results for details.",
+                    confidenceScore: scanToDisplay.aiAnalysis?.confidenceScore || 0.70,
+                });
+            }
+          } else if (scanToDisplay) {
+            console.log("Scan from URL is not completed, not setting as current detailed scan:", scanToDisplay);
           }
-        } catch (error) {
-          console.error("Failed to fetch device details:", error);
-          toast({ title: "Error", description: "Could not load device details.", variant: "destructive" });
-        } finally {
-          setLoading(false);
         }
+      } else {
+        notFound();
       }
-      loadDevice();
+    } catch (error) {
+      console.error("Failed to fetch device details:", error);
+      toast({ title: "Error", description: "Could not load device details.", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   }, [id, searchParams, toast]);
+
+  useEffect(() => {
+    loadDevice();
+  }, [loadDevice]);
+
+  const handleFormSubmit = async (values: any) => {
+    if (!device) return;
+    setIsSubmitting(true);
+    try {
+        const deviceData = {
+            ...values,
+            tags: values.tags ? values.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
+        };
+        const updatedDevice = await updateDevice(device.id, deviceData);
+        setDevice(updatedDevice);
+        toast({ title: "Success", description: "Device updated successfully." });
+        setIsFormOpen(false);
+    } catch (error) {
+        toast({ title: "Error", description: "Failed to update device.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+  const handleStatusChange = async (isActive: boolean) => {
+    if (!device) return;
+    
+    setDevice(prev => prev ? { ...prev, isActive } : null);
+
+    try {
+      await updateDevice(device.id, { isActive });
+      toast({ title: 'Status Updated', description: `Device is now ${isActive ? 'active' : 'inactive'}.` });
+    } catch (error) {
+      setDevice(prev => prev ? { ...prev, isActive: !isActive } : null);
+      toast({ title: 'Error', description: 'Failed to update device status.', variant: 'destructive' });
+    }
+  };
 
   const handleStartScan = async (scanType: ScanType) => {
     if (!device) return;
@@ -142,42 +181,7 @@ export default function DeviceDetailsPage() {
         clearInterval(progressInterval);
         setScanProgress(100);
         
-        const updatedDeviceData = await fetchDeviceById(id);
-        if (updatedDeviceData) {
-            const updatedDeviceScans = (updatedDeviceData as any).scans || [];
-            setRelatedScans(updatedDeviceScans.sort((a: Scan, b: Scan) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-            const completedScan = updatedDeviceScans.find((s:Scan) => s.id === scanJob.id && s.status === 'completed');
-            
-            if (completedScan) {
-                setCurrentScan(completedScan);
-                setScanLog(prev => [...prev, `Scan ${completedScan.id} completed.`]);
-
-                if (completedScan.aiAnalysis) {
-                    setAiEnhancement(completedScan.aiAnalysis);
-                    setScanLog(prev => [...prev, `AI Enhancement generated with confidence: ${completedScan.aiAnalysis.confidenceScore.toFixed(2)}`]);
-                }
-                if (completedScan.summary && (completedScan.scanType === 'ai' || completedScan.scanType === 'web' || completedScan.aiAnalysis)) {
-                    setAiSummary({
-                        summary: completedScan.summary,
-                        keyInsights: completedScan.aiAnalysis?.prioritizedRecommendations || "Refer to scan results for key insights.",
-                        confidenceScore: completedScan.aiAnalysis?.confidenceScore || 0.7
-                    });
-                    setScanLog(prev => [...prev, `AI Summary available.`]);
-                }
-            } else {
-                 const fallbackCompletedScan = {
-                    ...scanJob,
-                    status: 'completed' as ScanStatus,
-                    results: [{ id: 'res1', scanId: scanJob.id, finding: 'Mock Finding Fallback', severity: 'medium', status: 'open', createdAt: new Date().toISOString() }] as ScanResult[],
-                    vulnerabilitiesFound: 1,
-                    completedAt: new Date().toISOString(),
-                    summary: "Scan completed (fallback after re-fetch)."
-                };
-                setCurrentScan(fallbackCompletedScan);
-                setRelatedScans(prev => [fallbackCompletedScan, ...prev.filter(s => s.id !== fallbackCompletedScan.id)].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-                setScanLog(prev => [...prev, `Scan ${fallbackCompletedScan.id} completed (fallback).`]);
-            }
-        }
+        await loadDevice(); // Re-fetch all device data including new scan
         setIsScanning(false);
       }, 5000);
 
@@ -195,7 +199,6 @@ export default function DeviceDetailsPage() {
     setIsLoadingAiSuggestion(true);
     setAiSuggestion(null);
     setAiSuggestionError(null);
-    // No need to set selectedVulnerabilityForSuggestion here, it's set by DialogTrigger's onClick
 
     try {
       const suggestion = await callSuggestRemediationSteps(vuln.finding || (vuln as Vulnerability).name, device.name);
@@ -238,7 +241,7 @@ export default function DeviceDetailsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
           <DeviceIcon className="h-10 w-10 text-primary" />
           <div>
@@ -246,9 +249,37 @@ export default function DeviceDetailsPage() {
             <p className="text-muted-foreground">{device.brand} {device.model}</p>
           </div>
         </div>
-        <Badge variant={device.isActive ? 'success' : 'destructive'} className={cn(device.isActive ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300', 'capitalize text-sm py-1 px-3')}>
-          {device.isActive ? 'Active' : 'Inactive'}
-        </Badge>
+        <div className="flex items-center gap-4">
+            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline"><Edit className="mr-2 h-4 w-4" /> Edit Device</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>Edit Device</DialogTitle>
+                        <DialogDescription>
+                            Update the details for {device.name}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DeviceForm 
+                        device={device}
+                        onSubmit={handleFormSubmit}
+                        isSubmitting={isSubmitting}
+                        onCancel={() => setIsFormOpen(false)}
+                    />
+                </DialogContent>
+            </Dialog>
+            
+            <div className="flex items-center space-x-2 p-2 rounded-md border">
+              <Switch
+                id="device-status"
+                checked={device.isActive}
+                onCheckedChange={handleStatusChange}
+                aria-label={`Device status: ${device.isActive ? 'Active' : 'Inactive'}`}
+              />
+              <Label htmlFor="device-status" className="text-sm font-medium cursor-pointer">{device.isActive ? 'Active' : 'Inactive'}</Label>
+            </div>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
@@ -452,4 +483,3 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
-
