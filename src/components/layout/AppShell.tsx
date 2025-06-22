@@ -2,8 +2,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { Shield, LayoutDashboard, List, History, ScanSearch, Settings2, LogOut, CircleUser, Bell, FileText, PanelLeft, CalendarClock } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Shield, LayoutDashboard, List, History, ScanSearch, Settings2, CircleUser, Bell, FileText, PanelLeft, CalendarClock } from 'lucide-react';
 import {
   SidebarProvider,
   Sidebar,
@@ -21,7 +21,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { NavLinks } from '@/config/nav';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/layout/NotificationBell';
-import { createClient } from '@/lib/supabase/client';
 
 export function AppShell({
   children,
@@ -29,15 +28,7 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const supabase = createClient();
   const isLoginPage = pathname === '/login';
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
 
   if (isLoginPage) {
     return <>{children}</>;
@@ -76,12 +67,6 @@ export function AppShell({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Logout" onClick={handleLogout}>
-                  <LogOut suppressHydrationWarning />
-                  <span>Logout</span>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
@@ -116,8 +101,6 @@ export function AppShell({
                 <DropdownMenuItem asChild>
                   <Link href="/settings">Settings</Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

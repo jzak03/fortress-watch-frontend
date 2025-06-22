@@ -5,6 +5,10 @@ import type { NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
+
+  // The following authentication logic is temporarily disabled for development.
+  // To re-enable, uncomment the code block below.
+  /*
   const supabase = createMiddlewareClient({ req, res })
 
   const {
@@ -22,6 +26,7 @@ export async function middleware(req: NextRequest) {
   if (!session && !isLoginPage) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
+  */
 
   return res
 }

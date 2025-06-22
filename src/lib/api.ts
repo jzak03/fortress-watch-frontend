@@ -121,7 +121,7 @@ export const fetchDevices = async (filters: DeviceFilters = {}): Promise<Paginat
     query = query.eq('isActive', filters.isActive);
   }
 
-  query = query.order('createdAt', { ascending: false }).range(startIndex, endIndex);
+  query = query.order('created_at', { ascending: false }).range(startIndex, endIndex);
 
   const { data, error, count } = await query;
 
