@@ -22,6 +22,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { NavLinks } from '@/config/nav';
 import { cn } from '@/lib/utils'; // Added cn
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { NotificationBell } from '@/components/layout/NotificationBell';
 
 export const metadata: Metadata = {
   title: 'Vulntrack',
@@ -98,46 +99,7 @@ export default function RootLayout({
                   {/* Search can be added here if needed globally */}
                 </div>
                 <div className="flex items-center gap-4">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger 
-                      className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
-                      aria-label="Notifications"
-                    >
-                      <Bell className="h-5 w-5" suppressHydrationWarning />
-                      <span className="sr-only">Notifications</span>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-80 sm:w-96">
-                      <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem>
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium">New Scan Completed</p>
-                          <p className="text-xs text-muted-foreground">Device FW-101 scan finished successfully.</p>
-                          <p className="text-xs text-blue-500">2 minutes ago</p>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium text-destructive">Critical Alert</p>
-                          <p className="text-xs text-muted-foreground">High severity vulnerability found on Main-Router.</p>
-                          <p className="text-xs text-destructive">15 minutes ago</p>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium">Report Ready</p>
-                          <p className="text-xs text-muted-foreground">Your 'Quarterly Summary' report is ready for download.</p>
-                          <p className="text-xs text-blue-500">1 hour ago</p>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="justify-center" asChild>
-                        <Link href="/notifications">
-                          <Button variant="link" size="sm" className="p-0 h-auto">View all notifications</Button>
-                        </Link>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <NotificationBell />
 
                   <DropdownMenu>
                     <DropdownMenuTrigger 
