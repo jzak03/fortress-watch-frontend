@@ -131,8 +131,10 @@ export default function RootLayout({
                         </div>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="justify-center">
-                        <Button variant="link" size="sm" className="p-0 h-auto">View all notifications</Button>
+                      <DropdownMenuItem className="justify-center" asChild>
+                        <Link href="/notifications">
+                          <Button variant="link" size="sm" className="p-0 h-auto">View all notifications</Button>
+                        </Link>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -150,6 +152,9 @@ export default function RootLayout({
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
                         <Link href="/profile">Profile</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/notifications">Notifications</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/settings">Settings</Link>

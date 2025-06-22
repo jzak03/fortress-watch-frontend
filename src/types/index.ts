@@ -133,6 +133,22 @@ export interface ScanHistoryFilters {
   limit?: number;
 }
 
+export interface Notification {
+  id: string;
+  type: 'scan_completed' | 'critical_alert' | 'report_ready' | 'system_update';
+  title: string;
+  message: string;
+  isRead: boolean;
+  link?: string;
+  createdAt: string;
+}
+
+export interface NotificationFilters {
+  page?: number;
+  limit?: number;
+  status?: 'read' | 'unread' | 'all';
+}
+
 // Custom Report Types
 export type ReportSeverityLevel = 'critical' | 'high' | 'medium' | 'low' | 'informational';
 export type ReportFormat = 'pdf' | 'csv';

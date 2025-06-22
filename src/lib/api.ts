@@ -4,6 +4,7 @@
 
 
 
+
 import type {
   Device,
   Scan,
@@ -24,7 +25,9 @@ import type {
   ReportSeverityLevel,
   ReportFormat,
   ScheduledScan,
-  UserProfileSettings
+  UserProfileSettings,
+  Notification,
+  NotificationFilters
 } from '@/types';
 import { suggestRemediationSteps } from '@/ai/flows/suggest-remediation-steps';
 import { enhanceScanWithAi } from '@/ai/flows/enhance-scan-with-ai-analysis';
@@ -535,6 +538,99 @@ export const deleteScheduledScan = async (id: string): Promise<{ message: string
   if (index === -1) throw new Error("Schedule not found");
   mockScheduledScans.splice(index, 1);
   return { message: "Schedule deleted successfully." };
+};
+
+let mockNotifications: Notification[] = Array.from({ length: 15 }, (_, i) => {
+    const type = (['scan_completed', 'critical_alert', 'report_ready', 'system_update'] as const)[i % 4];
+    const isRead = i > 4; // First 5 are unread
+    let title = '';
+    let message = '';
+    let link = '';
+    
+    switch(type) {
+        case 'scan_completed':
+            title = 'Scan Completed';
+            message = `Device scan for 'Main-Router' finished successfully.`;
+            link = '/devices/device-fw-1?scanId=scan-fw-1';
+            break;
+        case 'critical_alert':
+            title = 'Critical Alert';
+            message = `High severity vulnerability CVE-2023-20202 found on 'ASA-Firewall-HQ'.`;
+            link = '/devices/device-fw-20';
+            break;
+        case 'report_ready':
+            title = 'Report Ready';
+            message = `Your 'Quarterly PCI Scan Summary' report is ready for download.`;
+            link = '/reports';
+            break;
+        case 'system_update':
+            title = 'System Update';
+            message = `A new version of Vulntrack is available. Please refresh your browser.`;
+            break;
+    }
+    
+    return {
+        id: `notif-${i + 1}`,
+        type,
+        title,
+        message,
+        isRead,
+        link,
+        createdAt: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 3).toISOString(),
+    }
+}).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+
+export const fetchNotifications = async (filters: NotificationFilters = {}): Promise<PaginatedResponse<Notification>> => {
+    console.log('API: Fetching notifications with filters', filters);
+    await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
+    
+    let filteredNotifications = mockNotifications.filter(notif => {
+        if (filters.status === 'read' && !notif.isRead) return false;
+        if (filters.status === 'unread' && notif.isRead) return false;
+        return true;
+    });
+
+    const page = filters.page || 1;
+    const limit = filters.limit || 10;
+    const totalItems = filteredNotifications.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const paginatedData = filteredNotifications.slice(startIndex, endIndex);
+
+    return {
+        data: paginatedData,
+        currentPage: page,
+        totalPages,
+        totalItems,
+        itemsPerPage: limit,
+    };
+};
+
+export const markNotificationAsRead = async (id: string): Promise<Notification> => {
+    console.log(`API: Marking notification ${id} as read`);
+    await new Promise(resolve => setTimeout(resolve, MOCK_DELAY / 2));
+    const index = mockNotifications.findIndex(n => n.id === id);
+    if (index === -1) throw new Error('Notification not found');
+    mockNotifications[index].isRead = true;
+    return mockNotifications[index];
+};
+
+export const markAllNotificationsAsRead = async (): Promise<{ message: string }> => {
+    console.log(`API: Marking all notifications as read`);
+    await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
+    mockNotifications.forEach(n => n.isRead = true);
+    return { message: 'All notifications marked as read.' };
+};
+
+export const deleteNotification = async (id: string): Promise<{ message: string }> => {
+  console.log(`API: Deleting notification ${id}`);
+  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY / 2));
+  const index = mockNotifications.findIndex(d => d.id === id);
+  if (index === -1) throw new Error('Notification not found');
+  mockNotifications.splice(index, 1);
+  return { message: 'Notification deleted successfully.' };
 };
 
 
