@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, notFound, useSearchParams } from 'next/navigation';
 import { fetchDeviceById, triggerScan, callSuggestRemediationSteps, updateDevice } from '@/lib/api';
 import type { Device, Scan, ScanType, Vulnerability, ScanResult, AISuggestion, AIEnhancement, AISummary, ScanStatus } from '@/types';
