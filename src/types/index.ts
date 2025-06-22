@@ -73,6 +73,22 @@ export interface Scan {
   createdAt: string; // ISO date string
 }
 
+export type ScheduleType = 'once' | 'daily' | 'weekly' | 'monthly';
+
+export interface ScheduledScan {
+  id: string;
+  deviceId: string;
+  scanType: ScanType;
+  scheduleType: ScheduleType;
+  cronExpression: string; // e.g., '0 22 * * 5' for Friday at 10 PM
+  nextRunAt: string; // ISO date string
+  lastRunAt?: string; // ISO date string
+  isActive: boolean;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+}
+
+
 export interface OrganizationSummary {
   totalDevices: number;
   activeDevices: number;
@@ -156,4 +172,3 @@ export interface CustomReportResponse {
   data?: CustomReportData;
   generated_at: string; // ISO date string
 }
-

@@ -1,5 +1,5 @@
 
-import { LayoutDashboard, List, History, ScanSearch, FileText, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, List, History, ScanSearch, FileText, CalendarClock, type LucideIcon } from 'lucide-react';
 
 interface NavLink {
   href: string;
@@ -29,9 +29,13 @@ export const NavLinks: NavLink[] = [
     icon: ScanSearch,
   },
   {
+    href: '/scheduled-scans',
+    label: 'Scheduled Scans',
+    icon: CalendarClock,
+  },
+  {
     href: '/reports',
     label: 'Reports',
     icon: FileText,
   },
 ];
-

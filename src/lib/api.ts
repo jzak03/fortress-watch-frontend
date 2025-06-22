@@ -1,6 +1,7 @@
 
 
 
+
 import type {
   Device,
   Scan,
@@ -18,7 +19,8 @@ import type {
   CustomReportParams,
   CustomReportResponse,
   CustomReportData,
-  ReportSeverityLevel
+  ReportSeverityLevel,
+  ScheduledScan
 } from '@/types';
 import { suggestRemediationSteps } from '@/ai/flows/suggest-remediation-steps';
 import { enhanceScanWithAi } from '@/ai/flows/enhance-scan-with-ai-analysis';
@@ -115,6 +117,12 @@ const mockScans: Scan[] = Array.from({ length: 120 }, (_, i) => {
     createdAt: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 10).toISOString(),
   };
 });
+
+const mockScheduledScans: ScheduledScan[] = [
+  { id: 'sched-1', deviceId: 'device-fw-1', scanType: 'full', scheduleType: 'weekly', cronExpression: '0 2 * * 1', nextRunAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3).toISOString(), isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'sched-2', deviceId: 'device-fw-3', scanType: 'web', scheduleType: 'daily', cronExpression: '0 0 * * *', nextRunAt: new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString(), isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'sched-3', deviceId: 'device-fw-10', scanType: 'ai', scheduleType: 'weekly', cronExpression: '0 4 * * 5', nextRunAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5).toISOString(), isActive: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+];
 
 
 export const fetchDevices = async (filters: DeviceFilters = {}): Promise<PaginatedResponse<Device>> => {
@@ -399,6 +407,46 @@ export const generateCustomReport = async (params: CustomReportParams): Promise<
   };
 };
 
+// Scheduled Scans API
+export const fetchScheduledScans = async (): Promise<ScheduledScan[]> => {
+  console.log('API: Fetching scheduled scans');
+  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
+  return mockScheduledScans.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+};
+
+export const createScheduledScan = async (data: Omit<ScheduledScan, 'id' | 'createdAt' | 'updatedAt' | 'nextRunAt'>): Promise<ScheduledScan> => {
+  console.log('API: Creating scheduled scan', data);
+  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
+  const newSchedule: ScheduledScan = {
+    ...data,
+    id: `sched-${Date.now()}`,
+    // In a real app, the backend would calculate the first nextRunAt based on the cron expression
+    nextRunAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), 
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  mockScheduledScans.push(newSchedule);
+  return newSchedule;
+};
+
+export const updateScheduledScan = async (id: string, data: Partial<ScheduledScan>): Promise<ScheduledScan> => {
+  console.log(`API: Updating scheduled scan ${id}`, data);
+  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
+  const index = mockScheduledScans.findIndex(s => s.id === id);
+  if (index === -1) throw new Error("Schedule not found");
+  mockScheduledScans[index] = { ...mockScheduledScans[index], ...data, updatedAt: new Date().toISOString() };
+  return mockScheduledScans[index];
+};
+
+export const deleteScheduledScan = async (id: string): Promise<{ message: string }> => {
+  console.log(`API: Deleting scheduled scan ${id}`);
+  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
+  const index = mockScheduledScans.findIndex(s => s.id === id);
+  if (index === -1) throw new Error("Schedule not found");
+  mockScheduledScans.splice(index, 1);
+  return { message: "Schedule deleted successfully." };
+};
+
 
 export const getScanTypes = (): ScanType[] => ['full', 'local', 'web', 'ai'];
 export const getScanStatuses = (): (ScanStatus | 'all')[] => ['all', 'pending', 'in_progress', 'completed', 'failed', 'cancelled'];
@@ -417,6 +465,3 @@ export const getSeverityLevels = (): Array<{id: ReportSeverityLevel, label: stri
     { id: 'low', label: 'Low' },
     { id: 'informational', label: 'Informational' },
 ];
-
-
-

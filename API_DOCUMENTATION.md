@@ -11,6 +11,7 @@ This document outlines the API endpoints and data schemas for the Vulntrack appl
     *   [Scan](#scan-model)
     *   [ScanResult](#scanresult-model)
     *   [Vulnerability](#vulnerability-model)
+    *   [ScheduledScan](#scheduledscan-model)
     *   [OrganizationSummary](#organizationsummary-model)
     *   [CustomReportParams](#customreportparams-model)
     *   [CustomReportResponse](#customreportresponse-model)
@@ -23,11 +24,12 @@ This document outlines the API endpoints and data schemas for the Vulntrack appl
     *   [ActivityLogEntry](#activitylogentry-model)
 3.  [Device Endpoints](#device-endpoints)
 4.  [Scan Endpoints](#scan-endpoints)
-5.  [Report Endpoints](#report-endpoints)
-6.  [AI Service Endpoints (Server Actions)](#ai-service-endpoints-server-actions)
-7.  [Settings Endpoints](#settings-endpoints)
-8.  [Notification Endpoints](#notification-endpoints)
-9.  [Security Endpoints](#security-endpoints)
+5.  [Scheduled Scan Endpoints](#scheduled-scan-endpoints)
+6.  [Report Endpoints](#report-endpoints)
+7.  [AI Service Endpoints (Server Actions)](#ai-service-endpoints-server-actions)
+8.  [Settings Endpoints](#settings-endpoints)
+9.  [Notification Endpoints](#notification-endpoints)
+10. [Security Endpoints](#security-endpoints)
 
 ---
 
@@ -126,6 +128,24 @@ Represents a known vulnerability. (Primarily for reference, usually part of `Sca
   "remediation": "string (optional)",
   "affectedSoftware": "string (optional)",
   "references": ["string (url)"]
+}
+```
+
+### ScheduledScan Model
+Represents the configuration for a recurring or future scan.
+
+```json
+{
+  "id": "string (uuid)",
+  "deviceId": "string (uuid)",
+  "scanType": "string ('full' | 'local' | 'web' | 'ai')",
+  "scheduleType": "string ('once' | 'daily' | 'weekly' | 'monthly')",
+  "cronExpression": "string (e.g., '0 22 * * 5')",
+  "nextRunAt": "string (ISO 8601 datetime)",
+  "lastRunAt": "string (ISO 8601 datetime, optional)",
+  "isActive": "boolean",
+  "createdAt": "string (ISO 8601 datetime)",
+  "updatedAt": "string (ISO 8601 datetime)"
 }
 ```
 
@@ -410,7 +430,44 @@ Represents a single entry in the user's activity log.
 
 ---
 
-## 5. Report Endpoints
+## 5. Scheduled Scan Endpoints
+
+Manage the configuration of recurring or future scans.
+
+### `GET /scheduled-scans`
+- **Purpose**: List all configured scheduled scans.
+- **Response**: `200 OK` - `ScheduledScan[]`
+
+### `POST /scheduled-scans`
+- **Purpose**: Create a new scheduled scan.
+- **Request Body**:
+    ```json
+    {
+      "deviceId": "string (uuid)",
+      "scanType": "string ('full' | 'local' | 'web' | 'ai')",
+      "scheduleType": "string ('once' | 'daily' | 'weekly' | 'monthly')",
+      "cronExpression": "string (e.g., '0 22 * * 5')",
+      "isActive": "boolean"
+    }
+    ```
+- **Response**: `201 Created` - `ScheduledScan`
+
+### `PUT /scheduled-scans/{id}`
+- **Purpose**: Update an existing scheduled scan (e.g., change time, pause/resume).
+- **Path Parameters**:
+    - `id`: string (Scheduled Scan ID)
+- **Request Body**: Partial `ScheduledScan` object.
+- **Response**: `200 OK` - `ScheduledScan` (the updated schedule object)
+
+### `DELETE /scheduled-scans/{id}`
+- **Purpose**: Delete a scheduled scan configuration.
+- **Path Parameters**:
+    - `id`: string (Scheduled Scan ID)
+- **Response**: `204 No Content`
+
+---
+
+## 6. Report Endpoints
 
 ### `GET /reports/organization/summary`
 - **Purpose**: Get an organization-wide summary, typically used to populate the main dashboard.
@@ -439,7 +496,7 @@ Represents a single entry in the user's activity log.
 
 ---
 
-## 6. AI Service Endpoints (Server Actions)
+## 7. AI Service Endpoints (Server Actions)
 
 These endpoints are typically invoked as Server Actions in a Next.js application, rather than traditional REST API calls. The schemas represent the input and output of these server-side functions.
 
@@ -496,7 +553,7 @@ These endpoints are typically invoked as Server Actions in a Next.js application
 
 ---
 
-## 7. Settings Endpoints
+## 8. Settings Endpoints
 
 Manage user-specific settings.
 
@@ -580,7 +637,7 @@ Manage user-specific settings.
 
 ---
 
-## 8. Notification Endpoints
+## 9. Notification Endpoints
 
 Manage user notifications.
 
@@ -615,7 +672,7 @@ Manage user notifications.
 
 ---
 
-## 9. Security Endpoints
+## 10. Security Endpoints
 
 Endpoints related to user security and audit trails.
 
@@ -630,4 +687,3 @@ Endpoints related to user security and audit trails.
 - **Response**: `200 OK` - `PaginatedResponse<ActivityLogEntry>`
 
 ---
-```
