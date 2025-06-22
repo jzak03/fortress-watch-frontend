@@ -172,9 +172,9 @@ export default function ScanHistoryPage() {
                     <TableCell>{scan.vulnerabilitiesFound}</TableCell>
                     <TableCell>{scan.completedAt ? new Date(scan.completedAt).toLocaleString() : 'N/A'}</TableCell>
                     <TableCell className="text-right">
-                       <Button asChild variant="ghost" size="sm">
+                       <Button asChild variant="ghost" size="sm" disabled={scan.status !== 'completed'}>
                         <Link href={`/devices/${scan.deviceId}?scanId=${scan.id}`}>
-                           View <ExternalLink className="h-3 w-3 ml-1" />
+                           View Details <ExternalLink className="h-3 w-3 ml-1" />
                         </Link>
                       </Button>
                     </TableCell>

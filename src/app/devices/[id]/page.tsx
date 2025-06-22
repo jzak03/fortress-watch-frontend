@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, notFound, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { fetchDeviceById, triggerScan, callSuggestRemediationSteps, updateDevice } from '@/lib/api';
 import type { Device, Scan, ScanType, Vulnerability, ScanResult, AISuggestion, AIEnhancement, AISummary, ScanStatus } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -457,6 +458,7 @@ export default function DeviceDetailsPage() {
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Vulnerabilities</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -471,6 +473,13 @@ export default function DeviceDetailsPage() {
                     </TableCell>
                     <TableCell>{new Date(scan.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>{scan.vulnerabilitiesFound}</TableCell>
+                    <TableCell className="text-right">
+                      <Button asChild variant="ghost" size="sm" disabled={scan.status !== 'completed'}>
+                        <Link href={`/devices/${device.id}?scanId=${scan.id}`}>
+                          View Details
+                        </Link>
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
