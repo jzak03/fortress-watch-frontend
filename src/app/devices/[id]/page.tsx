@@ -1,16 +1,15 @@
-
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, notFound, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { fetchDeviceById, triggerScan, callSuggestRemediationSteps, updateDevice } from '@/lib/api';
-import type { Device, Scan, ScanType, Vulnerability, ScanResult, AISuggestion, AIEnhancement, AISummary, ScanStatus } from '@/types';
+import { fetchDeviceById, triggerScan, callSuggestRemediationSteps, updateDevice, generateReportFromScan, getReportFormats } from '@/lib/api';
+import type { Device, Scan, ScanType, Vulnerability, ScanResult, AISuggestion, AIEnhancement, AISummary, ScanStatus, CustomReportResponse, ReportFormat } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Laptop, Smartphone, Server, Tablet, ScanLine, AlertTriangle, CheckCircle2, ShieldCheck, Lightbulb, Brain, Globe, Activity, CalendarDays, Tag, ListChecks, BarChartHorizontalBig, Loader2, Edit } from 'lucide-react';
+import { Laptop, Smartphone, Server, Tablet, ScanLine, AlertTriangle, CheckCircle2, ShieldCheck, Lightbulb, Brain, Globe, Activity, CalendarDays, Tag, ListChecks, BarChartHorizontalBig, Loader2, Edit, FileText } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -23,6 +22,13 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
@@ -77,6 +83,13 @@ export default function DeviceDetailsPage() {
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // State for report generation
+  const [reportResult, setReportResult] = useState<CustomReportResponse | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [selectedReportFormat, setSelectedReportFormat] = useState<ReportFormat>('pdf');
+  const reportFormats = getReportFormats();
 
 
   const loadDevice = useCallback(async () => {
@@ -94,6 +107,7 @@ export default function DeviceDetailsPage() {
           const scanToDisplay = deviceScans.find((s: Scan) => s.id === scanIdFromQuery);
           if (scanToDisplay && scanToDisplay.status === 'completed') {
             setCurrentScan(scanToDisplay);
+            setReportResult(null); // Reset report result when viewing a new scan
             if (scanToDisplay.aiAnalysis) {
               setAiEnhancement(scanToDisplay.aiAnalysis);
             }
@@ -219,6 +233,33 @@ export default function DeviceDetailsPage() {
     setIsLoadingAiSuggestion(false);
     setSelectedVulnerabilityForSuggestion(null);
   };
+  
+  const handleGenerateReport = async () => {
+    if (!currentScan) return;
+    setIsGeneratingReport(true);
+    setReportResult(null);
+    try {
+        const result = await generateReportFromScan(currentScan.id, { format: selectedReportFormat });
+        setReportResult(result);
+        if (result.status === 'completed') {
+            toast({
+                title: 'Report Queued',
+                description: `Your report is being generated and will be available shortly.`,
+            });
+        } else {
+             toast({
+                title: 'Report Generation Failed',
+                description: result.message,
+                variant: 'destructive',
+            });
+        }
+    } catch (error) {
+        toast({ title: 'Error', description: 'Failed to generate report.', variant: 'destructive' });
+    } finally {
+        setIsGeneratingReport(false);
+        setIsReportDialogOpen(false);
+    }
+  };
 
 
   if (loading && !device) {
@@ -334,10 +375,61 @@ export default function DeviceDetailsPage() {
       {currentScan && currentScan.status === 'completed' && (
         <Card>
           <CardHeader>
-            <CardTitle>Scan Results: {currentScan.id.substring(0,12)}...</CardTitle>
-            <CardDescription>Type: <span className="capitalize">{currentScan.scanType}</span> - Completed on {new Date(currentScan.completedAt!).toLocaleString()}</CardDescription>
+            <div className="flex justify-between items-start">
+                <div>
+                    <CardTitle>Scan Results: {currentScan.id.substring(0,12)}...</CardTitle>
+                    <CardDescription>Type: <span className="capitalize">{currentScan.scanType}</span> - Completed on {new Date(currentScan.completedAt!).toLocaleString()}</CardDescription>
+                </div>
+                <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+                    <DialogTrigger asChild>
+                       <Button variant="outline"><FileText className="mr-2 h-4 w-4" /> Generate Report</Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Generate Report for Scan</DialogTitle>
+                            <DialogDescription>
+                               Select a format for the report of scan <span className="font-mono text-xs">{currentScan.id.substring(0,12)}...</span>
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-2 py-4">
+                            <Label htmlFor="report-format">Report Format</Label>
+                            <Select defaultValue={selectedReportFormat} onValueChange={(value: ReportFormat) => setSelectedReportFormat(value)}>
+                               <SelectTrigger id="report-format">
+                                    <SelectValue placeholder="Select format" />
+                               </SelectTrigger>
+                               <SelectContent>
+                                   {reportFormats.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                               </SelectContent>
+                            </Select>
+                        </div>
+                        <DialogFooter>
+                             <Button variant="outline" onClick={() => setIsReportDialogOpen(false)}>Cancel</Button>
+                             <Button onClick={handleGenerateReport} disabled={isGeneratingReport}>
+                                {isGeneratingReport && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                 Generate
+                             </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
           </CardHeader>
           <CardContent>
+            {reportResult && (
+                <Alert variant={reportResult.status === 'failed' ? "destructive" : "default"} className="mb-4">
+                    <AlertTitle className="flex items-center gap-2">
+                        {reportResult.status === 'completed' ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                        Report Status: {reportResult.status.charAt(0).toUpperCase() + reportResult.status.slice(1)}
+                    </AlertTitle>
+                    <AlertDescription>
+                        {reportResult.message}
+                        {reportResult.data?.downloadLink && (
+                            <Button asChild variant="link" className="p-0 h-auto ml-2">
+                                <a href={reportResult.data.downloadLink} target="_blank" rel="noopener noreferrer">Download Report</a>
+                            </Button>
+                        )}
+                    </AlertDescription>
+                </Alert>
+             )}
             {aiSummary && (
               <div className="mb-4 p-4 border rounded-lg bg-secondary/50">
                 <h3 className="font-semibold text-lg flex items-center gap-2"><Lightbulb className="text-yellow-500"/>AI Summary (Confidence: {aiSummary.confidenceScore.toFixed(2)})</h3>
