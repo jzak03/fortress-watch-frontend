@@ -13,7 +13,7 @@ import {
   fetchDevices,
   getScanTypes
 } from '@/lib/api';
-import type { ScheduledScan, PaginatedResponse, Device, ScanType } from '@/types';
+import type { ScheduledScan, PaginatedResponse, Device, ScanType, ScheduleType } from '@/types';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,7 +32,7 @@ const scheduleFormSchema = z.object({
   id: z.string().optional(),
   deviceId: z.string().min(1, 'Device is required'),
   scanType: z.enum(getScanTypes() as [ScanType, ...ScanType[]]),
-  scheduleType: z.enum(['once', 'daily', 'weekly']),
+  scheduleType: z.enum(['once', 'daily', 'weekly', 'monthly']),
   cronExpression: z.string().min(1, 'A schedule time (cron format) is required. E.g., "0 22 * * 5" for Friday 10 PM'),
   isActive: z.boolean().default(true),
 });
@@ -49,6 +49,7 @@ export default function ScheduledScansPage() {
   const { toast } = useToast();
   
   const scanTypes = getScanTypes();
+  const scheduleTypes: ScheduleType[] = ['once', 'daily', 'weekly', 'monthly'];
 
   const form = useForm<ScheduleFormValues>({
     resolver: zodResolver(scheduleFormSchema),
@@ -186,6 +187,22 @@ export default function ScheduledScansPage() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="scheduleType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Schedule Type</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select a schedule type" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {scheduleTypes.map(t => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                  <FormField
                   control={form.control}
                   name="cronExpression"
@@ -239,6 +256,7 @@ export default function ScheduledScansPage() {
                   <TableHead>Status</TableHead>
                   <TableHead>Device</TableHead>
                   <TableHead>Scan Type</TableHead>
+                  <TableHead>Schedule Type</TableHead>
                   <TableHead>Schedule (Cron)</TableHead>
                   <TableHead>Next Run</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -254,6 +272,7 @@ export default function ScheduledScansPage() {
                     </TableCell>
                     <TableCell>{devices.find(d => d.id === schedule.deviceId)?.name || schedule.deviceId}</TableCell>
                     <TableCell className="capitalize">{schedule.scanType}</TableCell>
+                    <TableCell className="capitalize">{schedule.scheduleType}</TableCell>
                     <TableCell className="font-mono text-xs">{schedule.cronExpression}</TableCell>
                     <TableCell>{new Date(schedule.nextRunAt).toLocaleString()}</TableCell>
                     <TableCell className="text-right">
@@ -280,4 +299,3 @@ export default function ScheduledScansPage() {
     </div>
   );
 }
-
