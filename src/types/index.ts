@@ -169,3 +169,9 @@ export interface CustomReportResponse {
   data?: CustomReportData;
   generated_at: string; // ISO date string
 }
+
+export interface UserProfileSettings {
+  name: string;
+  email: string;
+  avatarUrl?: string;
+}

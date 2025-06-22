@@ -23,7 +23,8 @@ import type {
   CustomReportData,
   ReportSeverityLevel,
   ReportFormat,
-  ScheduledScan
+  ScheduledScan,
+  UserProfileSettings
 } from '@/types';
 import { suggestRemediationSteps } from '@/ai/flows/suggest-remediation-steps';
 import { enhanceScanWithAi } from '@/ai/flows/enhance-scan-with-ai-analysis';
@@ -126,6 +127,14 @@ const mockScheduledScans: ScheduledScan[] = [
   { id: 'sched-2', deviceId: 'device-fw-3', scanType: 'web', scheduleType: 'daily', cronExpression: '0 0 * * *', nextRunAt: new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString(), isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
   { id: 'sched-3', deviceId: 'device-fw-10', scanType: 'ai', scheduleType: 'weekly', cronExpression: '0 4 * * 5', nextRunAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5).toISOString(), isActive: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
 ];
+
+let mockUserProfileData = {
+  name: "Admin User",
+  email: "admin@vulntrack.com",
+  avatarUrl: "https://placehold.co/128x128.png",
+  role: "Administrator",
+  joinedDate: "2023-01-15T10:00:00Z",
+};
 
 
 export const fetchDevices = async (filters: DeviceFilters = {}): Promise<PaginatedResponse<Device>> => {
@@ -546,3 +555,16 @@ export const getSeverityLevels = (): Array<{id: ReportSeverityLevel, label: stri
     { id: 'low', label: 'Low' },
     { id: 'informational', label: 'Informational' },
 ];
+
+export const fetchUserProfile = async (): Promise<typeof mockUserProfileData> => {
+  console.log('API: Fetching user profile');
+  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY / 2));
+  return mockUserProfileData;
+};
+
+export const updateUserProfile = async (data: Partial<UserProfileSettings>): Promise<typeof mockUserProfileData> => {
+  console.log('API: Updating user profile', data);
+  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
+  mockUserProfileData = { ...mockUserProfileData, ...data };
+  return mockUserProfileData;
+};

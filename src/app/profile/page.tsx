@@ -1,20 +1,22 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, ShieldCheck, CalendarDays, Activity, ExternalLink } from "lucide-react";
+import { User, Mail, ShieldCheck, CalendarDays, Activity, ExternalLink, Edit } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { fetchUserProfile, updateUserProfile } from '@/lib/api';
+import { ProfileForm } from '@/components/profile/ProfileForm';
+import type { UserProfileSettings } from '@/types';
 
-interface UserProfile {
-  name: string;
-  email: string;
+// This will represent the full user data for display, including non-editable fields
+interface UserProfile extends UserProfileSettings {
   role: string;
-  joinedDate: string; // ISO string or simple date string
-  avatarUrl: string;
+  joinedDate: string;
 }
 
 interface ActivityLogEntry {
@@ -27,32 +29,54 @@ interface ActivityLogEntry {
 export default function ProfilePage() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [activities, setActivities] = useState<ActivityLogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Mock data fetching
-    const mockUser: UserProfile = {
-      name: "Admin User",
-      email: "admin@vulntrack.com",
-      role: "Administrator",
-      joinedDate: "2023-01-15T10:00:00Z",
-      avatarUrl: "https://placehold.co/128x128.png",
-    };
-    setUser(mockUser);
+    async function loadData() {
+      setLoading(true);
+      try {
+        const userData = await fetchUserProfile();
+        setUser(userData);
 
-    const mockActivities: ActivityLogEntry[] = [
-      { id: "act1", description: "Logged in", timestamp: new Date(Date.now() - 3600000 * 2) },
-      { id: "act2", description: "Viewed device FW-ASA-1020", timestamp: new Date(Date.now() - 3600000 * 2.5), link: "/devices/device-fw-20" }, // Assuming device-fw-20 is an example ID
-      { id: "act3", description: "Started bulk scan for 3 devices", timestamp: new Date(Date.now() - 3600000 * 3), link: "/bulk-scan" },
-      { id: "act4", description: "Generated 'Quarterly Security Report'", timestamp: new Date(Date.now() - 3600000 * 24), link: "/reports" },
-    ];
-    setActivities(mockActivities);
-  }, []);
+        const mockActivities: ActivityLogEntry[] = [
+          { id: "act1", description: "Logged in", timestamp: new Date(Date.now() - 3600000 * 2) },
+          { id: "act2", description: "Viewed device FW-ASA-1020", timestamp: new Date(Date.now() - 3600000 * 2.5), link: "/devices/device-fw-20" },
+          { id: "act3", description: "Started bulk scan for 3 devices", timestamp: new Date(Date.now() - 3600000 * 3), link: "/bulk-scan" },
+          { id: "act4", description: "Generated 'Quarterly Security Report'", timestamp: new Date(Date.now() - 3600000 * 24), link: "/reports" },
+        ];
+        setActivities(mockActivities);
+      } catch (error) {
+        toast({ title: 'Error', description: 'Failed to load profile data.', variant: 'destructive' });
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [toast]);
 
-  if (!user) {
+  const handleFormSubmit = async (values: UserProfileSettings) => {
+    if (!user) return;
+    setIsSubmitting(true);
+    try {
+      const updatedUser = await updateUserProfile(values);
+      setUser(updatedUser);
+      toast({ title: 'Success', description: 'Profile updated successfully.' });
+      setIsFormOpen(false);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to update profile.', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading || !user) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Skeleton className="h-20 w-20 rounded-full" />
+          <Skeleton className="h-24 w-24 rounded-full" />
           <div>
             <Skeleton className="h-8 w-48 mb-2 rounded" />
             <Skeleton className="h-6 w-32 rounded" />
@@ -64,7 +88,7 @@ export default function ProfilePage() {
             <Skeleton className="h-4 w-1/2 rounded" />
           </CardHeader>
           <CardContent className="space-y-4">
-            {[...Array(5)].map((_, i) => (
+            {[...Array(4)].map((_, i) => (
               <div key={i} className="flex items-center gap-3">
                 <Skeleton className="h-5 w-5 rounded-full" />
                 <Skeleton className="h-5 w-3/4 rounded" />
@@ -98,7 +122,23 @@ export default function ProfilePage() {
           <h1 className="text-3xl font-bold tracking-tight">{user.name}</h1>
           <Badge variant="secondary" className="mt-1 text-sm py-1 px-3">{user.role}</Badge>
         </div>
-         <Button variant="outline">Edit Profile</Button>
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Profile</DialogTitle>
+              <DialogDescription>Update your personal details. Click save when you're done.</DialogDescription>
+            </DialogHeader>
+            <ProfileForm 
+              user={user} 
+              onSubmit={handleFormSubmit}
+              isSubmitting={isSubmitting}
+              onCancel={() => setIsFormOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
@@ -170,4 +210,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
