@@ -33,7 +33,7 @@ type SidebarContext = {
   setOpen: (open: boolean) => void
   openMobile: boolean
   setOpenMobile: (open: boolean) => void
-  isMobile: boolean
+  isMobile: boolean | undefined
   toggleSidebar: () => void
 }
 
@@ -92,6 +92,7 @@ const SidebarProvider = React.forwardRef<
 
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
+      if (isMobile === undefined) return;
       return isMobile
         ? setOpenMobile((open) => !open)
         : setOpen((open) => !open)
@@ -157,6 +158,25 @@ const SidebarProvider = React.forwardRef<
 )
 SidebarProvider.displayName = "SidebarProvider"
 
+
+const SidebarSkeleton = () => (
+    <div className="hidden h-svh w-[var(--sidebar-width-icon)] flex-col border-r bg-sidebar p-2 md:flex">
+      <SidebarHeader>
+        <Skeleton className="h-10 w-full" />
+      </SidebarHeader>
+      <SidebarContent className="flex flex-col gap-2">
+        {[...Array(5)].map((_, i) => (
+          <SidebarMenuSkeleton key={i} showIcon />
+        ))}
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenuSkeleton showIcon />
+        <SidebarMenuSkeleton showIcon />
+      </SidebarFooter>
+    </div>
+);
+
+
 const Sidebar = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
@@ -178,19 +198,9 @@ const Sidebar = React.forwardRef<
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
     
-    if (collapsible === "none") {
-      return (
-        <div
-          className={cn(
-            "flex h-full w-[--sidebar-width] flex-col bg-sidebar text-sidebar-foreground",
-            className
-          )}
-          ref={ref}
-          {...props}
-        >
-          {children}
-        </div>
-      )
+    if (isMobile === undefined) {
+       if (collapsible === "none") return null;
+       return <SidebarSkeleton />;
     }
 
     if (isMobile) {
@@ -600,7 +610,7 @@ const SidebarMenuButton = React.forwardRef<
           <TooltipContent
             side="right"
             align="center"
-            hidden={state !== "collapsed" || isMobile}
+            hidden={isMobile === undefined || state !== "collapsed" || isMobile}
             {...tooltipContentProps}
           />
         </Tooltip>
