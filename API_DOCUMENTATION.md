@@ -172,7 +172,7 @@ Summary data for the organization's security posture.
 
 ### CustomReportParams Model
 
-Parameters for generating a custom report.
+Parameters for generating a custom report based on filters.
 
 ```json
 {
@@ -202,13 +202,18 @@ Response after requesting a custom report.
   "data": { // Optional, present if status is 'completed'
     "downloadLink": "string (url to download the report, optional)",
     "details": "any (report-specific data, optional)",
-    "filtersApplied": {
+    "filtersApplied": { // Present for filter-based reports
       "device_brands": ["string"],
       "severity_levels": ["string"],
       "date_range": { "start": "string", "end": "string" }
      },
     "trendsIncluded": "boolean",
-    "trendSummary": "string (Textual summary of trends, present if trendsIncluded is true, e.g., 'Overall vulnerability count decreased by 15% ...')"
+    "trendSummary": "string (Textual summary of trends, present if trendsIncluded is true, e.g., 'Overall vulnerability count decreased by 15% ...')",
+    "aiAnalysis": { // Present for scan-based AI reports
+        "executiveSummary": "string",
+        "prioritizedRecommendations": "string",
+        "confidenceScore": "number (0-1)"
+    }
   },
   "generated_at": "string (ISO 8601 datetime)"
 }
@@ -490,9 +495,20 @@ Manage the configuration of recurring or future scans.
             - `count`: number - The count of open vulnerabilities for that severity level.
 
 ### `POST /reports/custom`
-- **Purpose**: Generate a custom report.
+- **Purpose**: Generate a custom report based on a wide range of filters.
 - **Request Body**: `CustomReportParams`
 - **Response**: `202 Accepted` or `200 OK` - `CustomReportResponse` (status may indicate 'queued' or 'generating')
+
+### `POST /reports/scan-based`
+- **Purpose**: Generate a detailed, AI-enhanced report for a single, specific scan.
+- **Request Body**:
+    ```json
+    {
+      "scanId": "string (uuid)",
+      "format": "string ('pdf' | 'csv')"
+    }
+    ```
+- **Response**: `202 Accepted` - `CustomReportResponse` (The `data.aiAnalysis` field will be populated on completion)
 
 ---
 
@@ -518,7 +534,7 @@ These endpoints are typically invoked as Server Actions in a Next.js application
     ```
 
 ### `enhanceScanWithAi`
-- **Purpose**: Enhance a scan report with AI analysis.
+- **Purpose**: Enhance a scan report with AI analysis. This is the core flow used by the scan-based report generator.
 - **Input Schema** (`EnhanceScanWithAiInput`):
     ```json
     {
@@ -687,3 +703,4 @@ Endpoints related to user security and audit trails.
 - **Response**: `200 OK` - `PaginatedResponse<ActivityLogEntry>`
 
 ---
+

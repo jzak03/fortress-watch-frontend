@@ -63,11 +63,7 @@ export interface Scan {
   startedAt?: string; // ISO date string
   completedAt?: string; // ISO date string
   summary?: string; // AI generated summary
-  aiAnalysis?: {
-    executiveSummary: string;
-    prioritizedRecommendations: string;
-    confidenceScore: number;
-  };
+  aiAnalysis?: AIEnhancement;
   results?: ScanResult[]; // Or just a count/summary, full results might be a separate fetch
   vulnerabilitiesFound: number;
   createdAt: string; // ISO date string
@@ -163,6 +159,7 @@ export interface CustomReportData {
   filtersApplied?: CustomReportFilters;
   trendsIncluded?: boolean;
   trendSummary?: string; 
+  aiAnalysis?: AIEnhancement;
 }
 
 export interface CustomReportResponse {

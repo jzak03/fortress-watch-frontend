@@ -2,6 +2,7 @@
 
 
 
+
 import type {
   Device,
   Scan,
@@ -20,6 +21,7 @@ import type {
   CustomReportResponse,
   CustomReportData,
   ReportSeverityLevel,
+  ReportFormat,
   ScheduledScan
 } from '@/types';
 import { suggestRemediationSteps } from '@/ai/flows/suggest-remediation-steps';
@@ -407,6 +409,46 @@ export const generateCustomReport = async (params: CustomReportParams): Promise<
   };
 };
 
+export const generateReportFromScan = async (scanId: string, params: { format: ReportFormat }): Promise<CustomReportResponse> => {
+  console.log(`API: Generating AI report for scan ${scanId}`);
+  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY + 2500));
+
+  const scan = mockScans.find(s => s.id === scanId);
+  if (!scan) {
+    return {
+      report_id: `report-fw-scan-${Date.now()}`,
+      status: 'failed',
+      message: `Scan with ID ${scanId} not found.`,
+      generated_at: new Date().toISOString(),
+    };
+  }
+  
+  try {
+    const aiAnalysis = await enhanceScanWithAi({ scanReport: JSON.stringify(scan.results) });
+    const responseData: CustomReportData = {
+      details: `This is a mock AI-generated ${params.format.toUpperCase()} report for scan '${scan.id}' on device '${scan.deviceName}'.`,
+      aiAnalysis: aiAnalysis,
+      downloadLink: `/mock-reports/ai-report-${scan.id}-${Date.now()}.${params.format}`,
+    };
+
+    return {
+      report_id: `report-fw-scan-${Date.now()}`,
+      status: 'completed',
+      message: `AI-enhanced report for scan ${scanId} generated successfully.`,
+      data: responseData,
+      generated_at: new Date().toISOString(),
+    };
+  } catch (error) {
+    return {
+      report_id: `report-fw-scan-${Date.now()}`,
+      status: 'failed',
+      message: 'Report generation failed due to an AI service error.',
+      generated_at: new Date().toISOString(),
+    };
+  }
+};
+
+
 // Scheduled Scans API
 export const fetchScheduledScans = async (): Promise<ScheduledScan[]> => {
   console.log('API: Fetching scheduled scans');
@@ -453,7 +495,7 @@ export const getScanStatuses = (): (ScanStatus | 'all')[] => ['all', 'pending', 
 export const getDeviceBrands = (): string[] => ['all', ...new Set(mockDevices.map(d => d.brand))];
 export const getDeviceLocations = (): string[] => ['all', ...new Set(mockDevices.map(d => d.location))];
 
-export const getReportFormats = (): Array<{value: CustomReportParams['format'], label: string}> => [
+export const getReportFormats = (): Array<{value: ReportFormat, label: string}> => [
     { value: 'pdf', label: 'PDF' },
     { value: 'csv', label: 'CSV' },
 ];
