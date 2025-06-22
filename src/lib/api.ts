@@ -1,5 +1,6 @@
 
 
+
 import type {
   Device,
   Scan,
@@ -254,51 +255,61 @@ export const fetchScanHistory = async (filters: ScanHistoryFilters = {}): Promis
 
 export const fetchOrganizationSummary = async (): Promise<OrganizationSummary> => {
   console.log('API: Fetching organization summary');
-  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
-  const criticalVulnsByDevice: { [deviceId: string]: boolean } = {};
+  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY / 2)); // Reduced delay
+
+  const criticalVulnsByDevice = new Set<string>();
   let totalOpenVulnerabilities = 0;
-  
-  mockScans.forEach(scan => {
+  const severityDistribution: { [key in Vulnerability['severity']]: number } = {
+    critical: 0,
+    high: 0,
+    medium: 0,
+    low: 0,
+    informational: 0,
+  };
+
+  // Perform calculations in a single loop where possible
+  for (const scan of mockScans) {
     if (scan.status === 'completed' && scan.results) {
       let deviceHasOpenCritical = false;
-      scan.results.forEach(res => {
-        if (res.status === 'open') {
+      for (const result of scan.results) {
+        if (result.status === 'open') {
           totalOpenVulnerabilities++;
-          if (res.severity === 'critical') {
+          if (severityDistribution[result.severity] !== undefined) {
+            severityDistribution[result.severity]++;
+          }
+          if (result.severity === 'critical') {
             deviceHasOpenCritical = true;
           }
         }
-      });
+      }
       if (deviceHasOpenCritical) {
-        criticalVulnsByDevice[scan.deviceId] = true;
+        criticalVulnsByDevice.add(scan.deviceId);
       }
     }
-  });
-
-  const criticalCount = mockScans.reduce((sum, scan) => sum + (scan.results?.filter(r => r.severity === 'critical' && r.status === 'open').length || 0), 0);
-  const highCount = mockScans.reduce((sum, scan) => sum + (scan.results?.filter(r => r.severity === 'high' && r.status === 'open').length || 0), 0);
-  const mediumCount = mockScans.reduce((sum, scan) => sum + (scan.results?.filter(r => r.severity === 'medium' && r.status === 'open').length || 0), 0);
-  const lowCount = mockScans.reduce((sum, scan) => sum + (scan.results?.filter(r => r.severity === 'low' && r.status === 'open').length || 0), 0);
-  const informationalCount = mockScans.reduce((sum, scan) => sum + (scan.results?.filter(r => r.severity === 'informational' && r.status === 'open').length || 0), 0);
+  }
 
   return {
     totalDevices: mockDevices.length,
     activeDevices: mockDevices.filter(d => d.isActive).length,
-    devicesWithCriticalVulnerabilities: Object.keys(criticalVulnsByDevice).length,
+    devicesWithCriticalVulnerabilities: criticalVulnsByDevice.size,
     totalVulnerabilities: totalOpenVulnerabilities,
     averageTimeToRemediate: '7 days', // Mocked
     recentScansCount: mockScans.filter(s => new Date(s.createdAt).getTime() > Date.now() - 1000 * 60 * 60 * 24 * 7).length,
-    scanActivity: Array.from({ length: 7 }, (_, i) => ({
-      date: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA'), 
-      count: mockScans.filter(s => new Date(s.createdAt).toDateString() === new Date(Date.now() - (6-i) * 24*60*60*1000).toDateString()).length
-    })),
-    vulnerabilitySeverityDistribution: [
-      { severity: 'critical', count: criticalCount },
-      { severity: 'high', count: highCount },
-      { severity: 'medium', count: mediumCount },
-      { severity: 'low', count: lowCount },
-      { severity: 'informational', count: informationalCount },
-    ].filter(item => item.count > 0), // Only include severities with counts
+    scanActivity: Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000);
+      const dateString = date.toDateString();
+      const count = mockScans.filter(s => new Date(s.createdAt).toDateString() === dateString).length;
+      return {
+        date: date.toLocaleDateString('en-CA'),
+        count: count
+      };
+    }),
+    vulnerabilitySeverityDistribution: (Object.keys(severityDistribution) as Array<Vulnerability['severity']>)
+      .map(severity => ({
+        severity,
+        count: severityDistribution[severity],
+      }))
+      .filter(item => item.count > 0),
   };
 };
 
@@ -406,5 +417,6 @@ export const getSeverityLevels = (): Array<{id: ReportSeverityLevel, label: stri
     { id: 'low', label: 'Low' },
     { id: 'informational', label: 'Informational' },
 ];
+
 
 
