@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -12,17 +13,13 @@ import type { UserProfileSettings } from '@/types';
 const profileFormSchema = z.object({
   name: z.string().min(1, 'Name is required.'),
   email: z.string().email('Invalid email address.'),
-  avatarUrl: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
+  avatar_url: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 interface ProfileFormProps {
-  user: {
-    name: string;
-    email: string;
-    avatarUrl?: string;
-  };
+  user: UserProfileSettings;
   onSubmit: (values: ProfileFormValues) => void;
   isSubmitting: boolean;
   onCancel: () => void;
@@ -34,7 +31,7 @@ export function ProfileForm({ user, onSubmit, isSubmitting, onCancel }: ProfileF
     defaultValues: {
       name: user?.name || '',
       email: user?.email || '',
-      avatarUrl: user?.avatarUrl || '',
+      avatar_url: user?.avatar_url || '',
     },
   });
 
@@ -69,7 +66,7 @@ export function ProfileForm({ user, onSubmit, isSubmitting, onCancel }: ProfileF
         />
         <FormField
           control={form.control}
-          name="avatarUrl"
+          name="avatar_url"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Avatar URL</FormLabel>

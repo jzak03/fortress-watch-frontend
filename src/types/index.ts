@@ -44,29 +44,29 @@ export interface Vulnerability {
 export interface ScanResult {
   id: string;
   scanId: string;
-  vulnerabilityId?: string; // Could be an identified vulnerability
-  finding: string; // Description of the finding
-  details?: string; // More details about the finding
+  vulnerabilityId?: string;
+  finding: string;
+  details?: string;
   severity: 'critical' | 'high' | 'medium' | 'low' | 'informational';
   status: 'open' | 'closed' | 'ignored';
-  aiConfidenceScore?: number; // For AI-enhanced findings
+  aiConfidenceScore?: number;
   aiSuggestedRemediation?: string;
-  createdAt: string; // ISO date string
+  createdAt: string;
 }
 
 export interface Scan {
   id: string;
   deviceId: string;
-  deviceName?: string; // Denormalized for convenience
+  deviceName?: string; // Kept for UI convenience, populated at runtime
   scanType: ScanType;
   status: ScanStatus;
-  startedAt?: string; // ISO date string
-  completedAt?: string; // ISO date string
-  summary?: string; // AI generated summary
+  startedAt?: string;
+  completedAt?: string;
+  summary?: string;
   aiAnalysis?: AIEnhancement;
-  results?: ScanResult[]; // Or just a count/summary, full results might be a separate fetch
+  results?: ScanResult[];
   vulnerabilitiesFound: number;
-  createdAt: string; // ISO date string
+  createdAt: string;
 }
 
 export type ScheduleType = 'once' | 'daily' | 'weekly' | 'monthly';
@@ -76,24 +76,23 @@ export interface ScheduledScan {
   deviceId: string;
   scanType: ScanType;
   scheduleType: ScheduleType;
-  cronExpression: string; // e.g., '0 22 * * 5' for Friday at 10 PM
-  nextRunAt: string; // ISO date string
-  lastRunAt?: string; // ISO date string
+  cronExpression: string;
+  nextRunAt: string;
+  lastRunAt?: string;
   isActive: boolean;
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
+  createdAt: string;
+  updatedAt: string;
 }
-
 
 export interface OrganizationSummary {
   totalDevices: number;
   activeDevices: number;
   devicesWithCriticalVulnerabilities: number;
   totalVulnerabilities: number;
-  averageTimeToRemediate?: string; // e.g. "X days"
+  averageTimeToRemediate?: string;
   recentScansCount: number;
-  scanActivity: { date: string; count: number }[]; // For charts
-  vulnerabilitySeverityDistribution: { severity: Vulnerability['severity']; count: number }[]; // For charts
+  scanActivity: { date: string; count: number }[];
+  vulnerabilitySeverityDistribution: { severity: Vulnerability['severity']; count: number }[];
 }
 
 export interface AISuggestion {
@@ -120,15 +119,15 @@ export interface DeviceFilters {
   model?: string;
   version?: string;
   location?: string;
-  isActive?: boolean | string; // string for 'all' option
+  isActive?: boolean | string;
   page?: number;
   limit?: number;
 }
 
 export interface ScanHistoryFilters {
   deviceId?: string;
-  status?: ScanStatus | string; // string for 'all' option
-  scanType?: ScanType | string; // string for 'all' option
+  status?: ScanStatus | string;
+  scanType?: ScanType | string;
   page?: number;
   limit?: number;
 }
@@ -157,8 +156,8 @@ export interface CustomReportFilters {
   device_brands?: string[];
   severity_levels?: ReportSeverityLevel[];
   date_range?: {
-    start?: string; // ISO Date string
-    end?: string; // ISO Date string
+    start?: string;
+    end?: string;
   };
 }
 
@@ -180,14 +179,15 @@ export interface CustomReportData {
 
 export interface CustomReportResponse {
   report_id: string;
-  status: string; // e.g., "queued", "generating", "completed", "failed"
+  status: string;
   message?: string;
   data?: CustomReportData;
-  generated_at: string; // ISO date string
+  generated_at: string;
 }
 
 export interface UserProfileSettings {
+  user_id: string;
   name: string;
   email: string;
-  avatarUrl?: string;
+  avatar_url?: string;
 }

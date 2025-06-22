@@ -1,10 +1,9 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { User, Mail, ShieldCheck, CalendarDays, Activity, ExternalLink, Edit } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -12,11 +11,11 @@ import { useToast } from '@/hooks/use-toast';
 import { fetchUserProfile, updateUserProfile } from '@/lib/api';
 import { ProfileForm } from '@/components/profile/ProfileForm';
 import type { UserProfileSettings } from '@/types';
+import { User, Mail, Activity, ExternalLink, Edit } from "lucide-react";
 
-// This will represent the full user data for display, including non-editable fields
+// This will represent the full user data for display.
 interface UserProfile extends UserProfileSettings {
-  role: string;
-  joinedDate: string;
+  // role and joinedDate are removed as they are not in the new schema
 }
 
 interface ActivityLogEntry {
@@ -88,7 +87,7 @@ export default function ProfilePage() {
             <Skeleton className="h-4 w-1/2 rounded" />
           </CardHeader>
           <CardContent className="space-y-4">
-            {[...Array(4)].map((_, i) => (
+            {[...Array(2)].map((_, i) => (
               <div key={i} className="flex items-center gap-3">
                 <Skeleton className="h-5 w-5 rounded-full" />
                 <Skeleton className="h-5 w-3/4 rounded" />
@@ -115,12 +114,12 @@ export default function ProfilePage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Avatar className="h-24 w-24">
-          <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="person portrait" />
+          <AvatarImage src={user.avatar_url} alt={user.name} data-ai-hint="person portrait" />
           <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
           <h1 className="text-3xl font-bold tracking-tight">{user.name}</h1>
-          <Badge variant="secondary" className="mt-1 text-sm py-1 px-3">{user.role}</Badge>
+          <p className="text-muted-foreground">{user.email}</p>
         </div>
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogTrigger asChild>
@@ -159,20 +158,6 @@ export default function ProfilePage() {
              <div>
               <p className="text-xs text-muted-foreground">Email Address</p>
               <p className="text-sm font-medium">{user.email}</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="h-5 w-5 text-muted-foreground mt-0.5" />
-            <div>
-              <p className="text-xs text-muted-foreground">Role</p>
-              <p className="text-sm font-medium">{user.role}</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <CalendarDays className="h-5 w-5 text-muted-foreground mt-0.5" />
-            <div>
-              <p className="text-xs text-muted-foreground">Joined Date</p>
-              <p className="text-sm font-medium">{new Date(user.joinedDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
             </div>
           </div>
         </CardContent>
