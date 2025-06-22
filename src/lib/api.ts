@@ -1,10 +1,5 @@
 
-
-
-
-
-
-
+import { createClient } from './supabase/client';
 import type {
   Device,
   Scan,
@@ -35,47 +30,6 @@ import { summarizeScanFindings } from '@/ai/flows/summarize-scan-findings';
 
 const MOCK_DELAY = 500;
 
-const mockFirewallBrands = ['Cisco', 'Palo Alto Networks', 'Fortinet', 'Juniper Networks', 'Check Point'];
-const mockFirewallModels = {
-  'Cisco': ['ASA 5500-X', 'Firepower 1000', 'Meraki MX'],
-  'Palo Alto Networks': ['PA-220', 'PA-800 Series', 'PA-3200 Series'],
-  'Fortinet': ['FortiGate 60F', 'FortiGate 100F', 'FortiGate 1800F'],
-  'Juniper Networks': ['SRX300 Series', 'SRX1500', 'SRX4600'],
-  'Check Point': ['Quantum Spark', 'Quantum Security Gateway', 'Maestro Hyperscale Orchestrator'],
-};
-const mockFirewallOS = {
-  'Cisco': 'Cisco ASA Software',
-  'Palo Alto Networks': 'PAN-OS',
-  'Fortinet': 'FortiOS',
-  'Juniper Networks': 'Junos OS',
-  'Check Point': 'Gaia OS',
-};
-
-const mockDevices: Device[] = Array.from({ length: 55 }, (_, i) => {
-  const brand = mockFirewallBrands[i % mockFirewallBrands.length];
-  const model = mockFirewallModels[brand][i % mockFirewallModels[brand].length];
-  const os = mockFirewallOS[brand];
-  const osVersion = `${9 + (i % 3)}.${i % 5}.${i % 9}`;
-
-  return {
-    id: `device-fw-${i + 1}`,
-    name: `${brand.split(' ')[0]} Firewall ${model.split(' ')[0]}-${1000 + i}`,
-    brand: brand,
-    model: model,
-    version: `${1 + (i%4)}.${i % 10}.${i%5}`, // Firmware version of the device itself
-    location: ['Data Center A', 'Branch Office X', 'DMZ Zone', 'Cloud VPC Segment'][i % 4],
-    ipAddress: `10.0.${i % 255}.${10 + (i % 200)}`,
-    macAddress: `00:A1:B2:C3:D4:${(10 + i).toString(16).padStart(2, '0').toUpperCase()}`,
-    os: os,
-    osVersion: osVersion, // OS version running on the firewall
-    isActive: i % 6 !== 0, // every 6th device is inactive
-    lastSeen: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toISOString(),
-    createdAt: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 30).toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: [['core-network', 'high-availability'], ['perimeter-security'], ['internal-segmentation']][i%3],
-  };
-});
-
 const mockVulnerabilities: Vulnerability[] = [
   { id: 'vuln-fw-1', cveId: 'CVE-2023-20202', name: 'Cisco IOS XE Web UI Auth Bypass', description: 'A critical authentication bypass in Cisco IOS XE Web UI.', severity: 'critical', cvssScore: 9.8, affectedSoftware: 'Cisco IOS XE', references: ['https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-iosxe-auth-bypass-kLgg5N3'] },
   { id: 'vuln-fw-2', cveId: 'CVE-2022-30524', name: 'PAN-OS GlobalProtect Heap Overflow', description: 'A high severity heap overflow in Palo Alto Networks GlobalProtect.', severity: 'high', cvssScore: 8.8, affectedSoftware: 'PAN-OS', references: ['https://security.paloaltonetworks.com/CVE-2022-30524'] },
@@ -105,15 +59,15 @@ const mockScanResults = (scanId: string, deviceId: string): ScanResult[] => {
 
 
 const mockScans: Scan[] = Array.from({ length: 120 }, (_, i) => {
-  const device = mockDevices[i % mockDevices.length];
+  const deviceId = `device-fw-${(i % 55) + 1}`;
   const scanType = (['full', 'local', 'web', 'ai'] as ScanType[])[i % 4];
   const statusOptions: ScanStatus[] = ['completed', 'in_progress', 'failed', 'pending'];
   const status = statusOptions[i % statusOptions.length];
-  const results = status === 'completed' ? mockScanResults(`scan-fw-${i + 1}`, device.id) : [];
+  const results = status === 'completed' ? mockScanResults(`scan-fw-${i + 1}`, deviceId) : [];
   return {
     id: `scan-fw-${i + 1}`,
-    deviceId: device.id,
-    deviceName: device.name, // Store the device name at the time of scan
+    deviceId: deviceId,
+    deviceName: `Device Name ${i % 55}`, // Store the device name at the time of scan
     scanType,
     status,
     startedAt: status !== 'pending' ? new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24).toISOString() : undefined,
@@ -139,31 +93,48 @@ let mockUserProfileData = {
   joinedDate: "2023-01-15T10:00:00Z",
 };
 
-
 export const fetchDevices = async (filters: DeviceFilters = {}): Promise<PaginatedResponse<Device>> => {
-  console.log('API: Fetching devices with filters', filters);
-  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
-  
-  let filteredDevices = mockDevices.filter(device => {
-    if (filters.name && !device.name.toLowerCase().includes(filters.name.toLowerCase())) return false;
-    if (filters.brand && device.brand !== filters.brand) return false;
-    if (filters.model && !device.model.toLowerCase().includes(filters.model.toLowerCase())) return false;
-    if (filters.version && device.version !== filters.version) return false;
-    if (filters.location && device.location !== filters.location) return false;
-    if (filters.isActive !== undefined && filters.isActive !== 'all' && device.isActive !== filters.isActive) return false;
-    return true;
-  });
-
+  console.log('Supabase: Fetching devices with filters', filters);
+  const supabase = createClient();
   const page = filters.page || 1;
   const limit = filters.limit || 10;
-  const totalItems = filteredDevices.length;
-  const totalPages = Math.ceil(totalItems / limit);
   const startIndex = (page - 1) * limit;
-  const endIndex = page * limit;
-  const paginatedData = filteredDevices.slice(startIndex, endIndex);
+  const endIndex = page * limit - 1;
+
+  let query = supabase
+    .from('devices')
+    .select('*', { count: 'exact' });
+
+  if (filters.name) {
+    query = query.ilike('name', `%${filters.name}%`);
+  }
+  if (filters.brand && filters.brand !== 'all') {
+    query = query.eq('brand', filters.brand);
+  }
+  if (filters.model) {
+    query = query.ilike('model', `%${filters.model}%`);
+  }
+  if (filters.location && filters.location !== 'all') {
+    query = query.eq('location', filters.location);
+  }
+  if (filters.isActive !== undefined && filters.isActive !== 'all') {
+    query = query.eq('isActive', filters.isActive);
+  }
+
+  query = query.order('createdAt', { ascending: false }).range(startIndex, endIndex);
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error('Error fetching devices from Supabase:', error);
+    throw error;
+  }
+  
+  const totalItems = count || 0;
+  const totalPages = Math.ceil(totalItems / limit);
 
   return {
-    data: paginatedData,
+    data: data as Device[],
     currentPage: page,
     totalPages,
     totalItems,
@@ -172,55 +143,101 @@ export const fetchDevices = async (filters: DeviceFilters = {}): Promise<Paginat
 };
 
 export const fetchDeviceById = async (id: string): Promise<Device | undefined> => {
-  console.log(`API: Fetching device by ID ${id}`);
-  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
-  const device = mockDevices.find(d => d.id === id);
-  if (device) {
-    // Add some mock scans related to this device
-    // @ts-ignore
-    device.scans = mockScans.filter(s => s.deviceId === id).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
+  console.log(`Supabase: Fetching device by ID ${id}`);
+  const supabase = createClient();
+
+  const { data: device, error: deviceError } = await supabase
+    .from('devices')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (deviceError) {
+    console.error(`Error fetching device ${id}:`, deviceError);
+    if (deviceError.code === 'PGRST116') {
+      return undefined;
+    }
+    throw deviceError;
   }
-  return device;
+  
+  if (!device) {
+    return undefined;
+  }
+  
+  const { data: scans, error: scansError } = await supabase
+    .from('scans')
+    .select('*')
+    .eq('deviceId', id)
+    .order('createdAt', { ascending: false })
+    .limit(5);
+
+  if (scansError) {
+    console.error(`Error fetching scans for device ${id}:`, scansError);
+  }
+
+  (device as any).scans = scans || [];
+  
+  return device as Device;
 };
 
-export const createDevice = async (deviceData: Omit<Device, 'id' | 'lastSeen' | 'createdAt' | 'updatedAt' | 'isActive'>): Promise<Device> => {
-  console.log('API: Creating device', deviceData);
-  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
-  const newDevice: Device = {
-    ...deviceData,
-    id: `device-fw-${Date.now()}`,
-    isActive: true, // New devices are active by default
-    lastSeen: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  mockDevices.unshift(newDevice); // Add to the beginning of the list
-  return newDevice;
+export const createDevice = async (deviceData: Omit<Device, 'id' | 'lastSeen' | 'createdAt' | 'updatedAt'>): Promise<Device> => {
+  console.log('Supabase: Creating device', deviceData);
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('devices')
+    .insert([deviceData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating device:', error);
+    throw error;
+  }
+
+  return data as Device;
 };
 
 export const updateDevice = async (id: string, deviceData: Partial<Omit<Device, 'id' | 'createdAt'>>): Promise<Device> => {
-  console.log(`API: Updating device ${id}`, deviceData);
-  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
-  const index = mockDevices.findIndex(d => d.id === id);
-  if (index === -1) throw new Error('Device not found');
+  console.log(`Supabase: Updating device ${id}`, deviceData);
+  const supabase = createClient();
   
-  mockDevices[index] = { ...mockDevices[index], ...deviceData, updatedAt: new Date().toISOString() };
-  return mockDevices[index];
+  const { data, error } = await supabase
+    .from('devices')
+    .update(deviceData)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(`Error updating device ${id}:`, error);
+    throw error;
+  }
+
+  return data as Device;
 };
 
 export const deleteDevice = async (id: string): Promise<{ message: string }> => {
-  console.log(`API: Deleting device ${id}`);
-  await new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
-  const index = mockDevices.findIndex(d => d.id === id);
-  if (index === -1) throw new Error('Device not found');
-  mockDevices.splice(index, 1);
+  console.log(`Supabase: Deleting device ${id}`);
+  const supabase = createClient();
+  
+  const { error } = await supabase
+    .from('devices')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error(`Error deleting device ${id}:`, error);
+    throw error;
+  }
+
   return { message: 'Device deleted successfully.' };
 };
 
 export const triggerScan = async (deviceId: string, scanType: ScanType, options?: any): Promise<Scan> => {
   console.log(`API: Triggering ${scanType} scan for device ${deviceId} with options`, options);
   await new Promise(resolve => setTimeout(resolve, MOCK_DELAY + 1000)); // Longer delay for scan trigger
-  const device = mockDevices.find(d => d.id === deviceId);
+  const { data: device } = await createClient().from('devices').select('*').eq('id', deviceId).single();
   if (!device) throw new Error('Device not found');
 
   const newScan: Scan = {
@@ -261,11 +278,7 @@ export const triggerScan = async (deviceId: string, scanType: ScanType, options?
          newScan.summary = `Scan completed. Found ${newScan.vulnerabilitiesFound} open vulnerabilities.`;
       }
       console.log(`API: Scan ${newScan.id} completed.`);
-      // Note: In a real app, you'd update this scan's state in your backend/DB.
-      const deviceIndex = mockDevices.findIndex(d => d.id === newScan.deviceId);
-      if (deviceIndex !== -1) {
-        mockDevices[deviceIndex].lastSeen = new Date().toISOString();
-      }
+      await updateDevice(newScan.deviceId, { lastSeen: new Date().toISOString() });
       mockScans.unshift(newScan); 
     }, MOCK_DELAY * 3);
   }, MOCK_DELAY * 2);
@@ -278,10 +291,7 @@ export const triggerBulkScan = async (deviceIds: string[]): Promise<{ jobId: str
   await new Promise(resolve => setTimeout(resolve, MOCK_DELAY + 1500));
   // Simulate starting scans for each device
   deviceIds.forEach(id => {
-    const device = mockDevices.find(d => d.id === id);
-    if (device) {
-      triggerScan(id, 'full'); // Trigger full scan for bulk operations
-    }
+    triggerScan(id, 'full'); // Trigger full scan for bulk operations
   });
   return { jobId: `bulk-job-fw-${Date.now()}`, message: `${deviceIds.length} firewall scans initiated.` };
 };
@@ -317,6 +327,11 @@ export const fetchScanHistory = async (filters: ScanHistoryFilters = {}): Promis
 export const fetchOrganizationSummary = async (): Promise<OrganizationSummary> => {
   console.log('API: Fetching organization summary');
   await new Promise(resolve => setTimeout(resolve, MOCK_DELAY / 2)); // Reduced delay
+  const { data: devices, error } = await createClient().from('devices').select('*');
+  if (error) {
+    console.error(error);
+    throw new Error('Could not fetch devices for summary');
+  }
 
   const criticalVulnsByDevice = new Set<string>();
   let totalOpenVulnerabilities = 0;
@@ -328,7 +343,6 @@ export const fetchOrganizationSummary = async (): Promise<OrganizationSummary> =
     informational: 0,
   };
 
-  // Perform calculations in a single loop where possible
   for (const scan of mockScans) {
     if (scan.status === 'completed' && scan.results) {
       let deviceHasOpenCritical = false;
@@ -350,8 +364,8 @@ export const fetchOrganizationSummary = async (): Promise<OrganizationSummary> =
   }
 
   return {
-    totalDevices: mockDevices.length,
-    activeDevices: mockDevices.filter(d => d.isActive).length,
+    totalDevices: devices.length,
+    activeDevices: devices.filter(d => d.isActive).length,
     devicesWithCriticalVulnerabilities: criticalVulnsByDevice.size,
     totalVulnerabilities: totalOpenVulnerabilities,
     averageTimeToRemediate: '7 days', // Mocked
@@ -379,7 +393,6 @@ export const fetchOrganizationSummary = async (): Promise<OrganizationSummary> =
 export const callSuggestRemediationSteps = async (vulnerabilityDescription: string, deviceInformation: string): Promise<AISuggestion> => {
   console.log(`API: Calling AI for remediation steps for '${vulnerabilityDescription}' on '${deviceInformation}'`);
   try {
-    // Simulate AI response for specific vulnerabilities if needed for consistency
     if (vulnerabilityDescription.toLowerCase().includes('cisco ios xe web ui auth bypass')) {
         return {
             remediationSteps: `**Immediate Actions:**\n1. **Restrict access** to the web UI from untrusted networks and the internet.\n2. **Apply vendor patches** immediately. Refer to Cisco Security Advisory cisco-sa-iosxe-auth-bypass-kLgg5N3.\n\n**Verification:**\n- Confirm patch application via CLI command 'show version'.\n- Test web UI access controls rigorously.\n\n**Considerations:**\n- If patching is delayed, disable the HTTP Server feature on affected systems using 'no ip http server' or 'no ip http secure-server' in global configuration mode. This will impact web UI access.`,
@@ -429,7 +442,6 @@ export const generateCustomReport = async (params: CustomReportParams): Promise<
   console.log('API: Generating custom report with params:', params);
   await new Promise(resolve => setTimeout(resolve, MOCK_DELAY + 2000)); // Simulate report generation time
 
-  // Simulate different outcomes
   const random = Math.random();
   if (random < 0.1) {
     return {
@@ -513,7 +525,6 @@ export const createScheduledScan = async (data: Omit<ScheduledScan, 'id' | 'crea
   const newSchedule: ScheduledScan = {
     ...data,
     id: `sched-${Date.now()}`,
-    // In a real app, the backend would calculate the first nextRunAt based on the cron expression
     nextRunAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), 
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -636,8 +647,9 @@ export const deleteNotification = async (id: string): Promise<{ message: string 
 
 export const getScanTypes = (): ScanType[] => ['full', 'local', 'web', 'ai'];
 export const getScanStatuses = (): (ScanStatus | 'all')[] => ['all', 'pending', 'in_progress', 'completed', 'failed', 'cancelled'];
-export const getDeviceBrands = (): string[] => ['all', ...new Set(mockDevices.map(d => d.brand))];
-export const getDeviceLocations = (): string[] => ['all', ...new Set(mockDevices.map(d => d.location))];
+export const getDeviceBrands = (): string[] => ['all', 'Cisco', 'Palo Alto Networks', 'Fortinet', 'Juniper Networks', 'Check Point'];
+export const getDeviceLocations = (): string[] => ['all', 'Data Center A', 'Branch Office X', 'DMZ Zone', 'Cloud VPC Segment'];
+
 
 export const getReportFormats = (): Array<{value: ReportFormat, label: string}> => [
     { value: 'pdf', label: 'PDF' },
@@ -664,3 +676,6 @@ export const updateUserProfile = async (data: Partial<UserProfileSettings>): Pro
   mockUserProfileData = { ...mockUserProfileData, ...data };
   return mockUserProfileData;
 };
+
+
+    
